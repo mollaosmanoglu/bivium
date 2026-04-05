@@ -7,17 +7,17 @@ class CameraPosition(BaseModel):
     altitude: float
 
 
-class CountryHighlight(BaseModel):
-    iso_a3: str
+class Faction(BaseModel):
+    name: str
     color: str
-    altitude: float
+    countries: list[str]
 
 
 class TimelineStep(BaseModel):
     year: int
     narration: str
     camera: CameraPosition
-    highlights: list[CountryHighlight]
+    factions: list[Faction]
 
 
 class AlternateTimeline(BaseModel):
