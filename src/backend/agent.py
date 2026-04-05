@@ -28,52 +28,35 @@ with no gaps, like EU4 or Hearts of Iron.
 </goal>
 
 <examples>
-<example>
-Question: "What if the Ottoman Empire never fell?"
-Step 1 (1683):
-  camera: lat=39, lng=32, altitude=2.0
-  narration: "After lifting the Siege of Vienna, the Ottoman Empire consolidates its grip on Southeast Europe and the Levant."
-  factions:
-    - Ottoman Empire | #c0392b | Sultan Mehmed V | "A sprawling multi-ethnic empire controlling three continents"
-      Rumelia: GRC, BGR, SRB, BIH, ALB, MKD, MNE, KOS, HRV
-      Anatolia: TUR, CYP
-      Mashriq: SYR, IRQ, JOR, LBN, ISR, PSE
-      Egypt: EGY, LBY, TUN
-      Hijaz: SAU, YEM, OMN
-    - Habsburg Empire | #2980b9 | Emperor Leopold I | "Catholic bulwark of Central Europe"
-      Austria: AUT, HUN, CZE, SVK, SVN
-      Low Countries: BEL, NLD, LUX
-    - Kingdom of France | #8e44ad | Louis XIV | "The Sun King's domain at its zenith"
-      Metropolitan France: FRA, MCO
-      Colonies: SEN, MLI
-    - Russian Tsardom | #27ae60 | Peter the Great | "An expanding northern giant"
-      Muscovy: RUS, BLR, UKR
-      Siberia: KAZ, MNG
-    - Qing Dynasty | #e67e22 | Kangxi Emperor | "Mandate of Heaven over East Asia"
-      China Proper: CHN, TWN
-      Tributaries: KOR, VNM, LAO, KHM, MMR
-    - Mughal Empire | #f39c12 | Aurangzeb | "Islamic empire spanning the subcontinent"
-      Hindustan: IND, PAK, BGD, LKA, NPL
-    - Rest of World | #7f8c8d | — | "Unaligned or colonial territories"
-      Americas: USA, CAN, MEX, BRA, ARG, ...remaining countries
-</example>
+<good_example>
+Sub-region names use period-accurate administrative terms:
+  Ottoman Empire:
+    "Eyalet of Rumelia", "Vilayet of Hijaz", "Eyalet of Misir", \
+    "Vilayet of Basra", "Sanjak of Jerusalem"
+  Roman Empire:
+    "Provincia Britannia", "Dioecesis Galliarum", "Praefectura Italiae", \
+    "Provincia Africa Proconsularis"
+  British Empire:
+    "Crown Colony of the Cape", "Raj of Hindustan", \
+    "Dominion of Canada", "Protectorate of Egypt"
+  Qing Dynasty:
+    "Zhili Province", "Liangguang Viceroyalty", "Tributary of Joseon"
+  Russian Empire:
+    "Guberniya of Moscow", "Governorate of Finland", \
+    "Khanate of Khiva (vassal)"
+</good_example>
 
-<example>
-Question: "What if Rome never fell?"
-Step 1 (476):
-  factions:
-    - Roman Empire | #c0392b | Emperor Julius Nepos | "The eternal empire, unbroken"
-      Italia: ITA, MLT, SMR, VAT
-      Gallia: FRA, BEL, LUX, CHE
-      Hispania: ESP, PRT
-      Britannia: GBR, IRL
-      Africa: TUN, LBY, DZA, MAR, EGY
-      Oriens: TUR, SYR, LBN, ISR, JOR, IRQ, CYP, GRC
-    - Sassanid Empire | #2980b9 | Peroz I | "Zoroastrian rival to Rome's east"
-      Persia: IRN, AFG
-      Mesopotamia: KWT, BHR, QAT, ARE, OMN
-    ... (fill every country into some faction)
-</example>
+<bad_example>
+Generic geography names with no historical flavor:
+  "Middle East", "Southeast Asia", "Central Europe", "South America", \
+  "Western Africa", "East Asia", "Northern Europe", "Russian Core"
+</bad_example>
+
+<bad_example>
+Modern names on historical empires:
+  "Turkey", "Iraq Region", "French Zone", "China Proper", "India"
+These break the historical illusion.
+</bad_example>
 </examples>
 
 <constraints>
