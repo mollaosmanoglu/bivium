@@ -16,7 +16,7 @@ from openai.types.responses import ResponseTextDeltaEvent  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 
 from src.backend.agent import historian  # noqa: E402
-from src.backend.geo import merge_countries  # noqa: E402
+from src.backend.geo import centroid_of_countries, merge_countries  # noqa: E402
 from src.backend.models import (  # noqa: E402
     AlternateTimeline,
     FactionInfo,
@@ -59,12 +59,16 @@ def _merge_step(step: TimelineStep) -> GeoStep:
     regions: list[MergedRegion] = []
     faction_infos: list[FactionInfo] = []
     for faction in step.factions:
+        all_codes = [c for sub in faction.sub_regions for c in sub.countries]
+        lat, lng = centroid_of_countries(all_codes)
         faction_infos.append(
             FactionInfo(
                 name=faction.name,
                 color=faction.color,
                 leader=faction.leader,
                 description=faction.description,
+                lat=lat,
+                lng=lng,
             )
         )
         n = len(faction.sub_regions)

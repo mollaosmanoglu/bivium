@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from shapely.geometry import mapping, shape
+from shapely.geometry import MultiPolygon, mapping, shape
 from shapely.ops import unary_union
 
 logger = logging.getLogger("bivium")
@@ -44,6 +44,28 @@ def _load() -> None:
                     {"name": name, "geometry": shape(feat["geometry"])}
                 )
         logger.info("Loaded provinces for %d countries", len(_provinces_by_country))
+
+
+def centroid_of_countries(iso_codes: list[str]) -> tuple[float, float]:
+    """Return (lat, lng) label point for a set of countries.
+
+    Uses the representative point of the largest polygon so the label
+    sits inside the biggest contiguous landmass, not in the ocean.
+    """
+    _load()
+    geoms = [
+        _country_geometries[iso] for iso in iso_codes if iso in _country_geometries
+    ]
+    if not geoms:
+        return (0.0, 0.0)
+    merged = unary_union(geoms)
+    # Pick the largest polygon from a MultiPolygon
+    if isinstance(merged, MultiPolygon):
+        largest = max(merged.geoms, key=lambda g: float(g.area))
+    else:
+        largest = merged
+    pt = largest.representative_point()
+    return (float(pt.y), float(pt.x))
 
 
 def merge_countries(iso_codes: list[str]) -> dict[str, Any] | None:

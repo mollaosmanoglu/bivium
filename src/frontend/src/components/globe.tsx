@@ -25,6 +25,8 @@ interface FactionInfo {
 	color: string;
 	leader: string;
 	description: string;
+	lat: number;
+	lng: number;
 }
 
 interface MergedRegion {
@@ -134,6 +136,7 @@ export default function GlobeViewer({ timeline, streaming = false }: GlobeViewer
 	}, [streaming, timeline]);
 
 	const step = timeline?.steps[currentStep];
+	const labels = step?.factions.filter((f) => f.leader !== "-") ?? [];
 
 	return (
 		<div className="relative h-screen w-screen bg-black">
@@ -156,6 +159,19 @@ export default function GlobeViewer({ timeline, streaming = false }: GlobeViewer
 					</div>`;
 				}}
 				polygonsTransitionDuration={800}
+				labelsData={labels}
+				labelLat={(d: object) => (d as FactionInfo).lat}
+				labelLng={(d: object) => (d as FactionInfo).lng}
+				labelText={(d: object) => (d as FactionInfo).name.toUpperCase()}
+				labelColor={() => "rgba(255, 255, 255, 0.85)"}
+				labelSize={(d: object) => {
+					const name = (d as FactionInfo).name;
+					return name.length > 15 ? 1.0 : 1.5;
+				}}
+				labelAltitude={0.007}
+				labelIncludeDot={false}
+				labelResolution={2}
+				labelsTransitionDuration={800}
 				atmosphereColor="#3a228a"
 				atmosphereAltitude={0.2}
 			/>

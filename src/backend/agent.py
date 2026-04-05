@@ -107,7 +107,7 @@ async def whatif_guardrail(
 
 historian: Agent[None] = Agent(
     name="Historian",
-    model="gpt-5.4",
+    model="gpt-5.4-mini",
     instructions=SYSTEM_PROMPT,
     output_type=AlternateTimeline,
     input_guardrails=[InputGuardrail(guardrail_function=whatif_guardrail)],
