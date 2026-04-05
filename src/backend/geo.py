@@ -54,7 +54,7 @@ def merge_countries(iso_codes: list[str]) -> dict[str, Any] | None:
     ]
     if not geoms:
         return None
-    merged = unary_union(geoms).simplify(0.1, preserve_topology=True)
+    merged = unary_union(geoms).simplify(0.01, preserve_topology=True)
     if merged.is_empty:
         return None
     return mapping(merged)  # type: ignore[return-value]

@@ -52,6 +52,7 @@ export interface AlternateTimeline {
 
 interface GlobeViewerProps {
 	timeline: AlternateTimeline | null;
+	streaming?: boolean;
 }
 
 type GeoFeature = {
@@ -67,11 +68,11 @@ type GeoFeature = {
 
 const STEP_DURATION = 4000;
 
-export default function GlobeViewer({ timeline }: GlobeViewerProps) {
+export default function GlobeViewer({ timeline, streaming = false }: GlobeViewerProps) {
 	const globeRef = useRef<GlobeMethods>(undefined) as MutableRefObject<
 		GlobeMethods | undefined
 	>;
-	const [currentStep, setCurrentStep] = useState(-1);
+	const [currentStep, setCurrentStep] = useState(0);
 
 	// Pre-build all step polygons once when timeline arrives
 	const allStepPolygons = useMemo<GeoFeature[][]>(() => {
@@ -92,37 +93,36 @@ export default function GlobeViewer({ timeline }: GlobeViewerProps) {
 		);
 	}, [timeline]);
 
-	const polygons = currentStep >= 0 ? (allStepPolygons[currentStep] ?? []) : [];
+	const polygons = allStepPolygons[currentStep] ?? [];
 
 	useEffect(() => {
-		if (!timeline || currentStep < 0) return;
+		if (!timeline) return;
 		const step = timeline.steps[currentStep];
 		if (!step || !globeRef.current) return;
 		globeRef.current.pointOfView(step.camera, 1000);
 	}, [timeline, currentStep]);
 
-	// Start on first step when timeline appears
+	// During streaming: show the latest step as it arrives
 	useEffect(() => {
-		if (!timeline || timeline.steps.length === 0) {
-			setCurrentStep(-1);
-			return;
-		}
-		if (currentStep === -1) {
-			setCurrentStep(0);
-		}
-	}, [timeline, timeline?.steps.length, currentStep]);
+		if (!streaming || !timeline) return;
+		setCurrentStep(timeline.steps.length - 1);
+	}, [streaming, timeline?.steps.length]);
 
-	// Auto-advance when new steps arrive
+	// After streaming: auto-advance from step 0
 	useEffect(() => {
-		if (!timeline || timeline.steps.length === 0) return;
+		if (streaming || !timeline || timeline.steps.length === 0) return;
+		setCurrentStep(0);
 		const interval = setInterval(() => {
 			setCurrentStep((prev) => {
-				if (prev >= timeline.steps.length - 1) return prev;
+				if (prev >= timeline.steps.length - 1) {
+					clearInterval(interval);
+					return prev;
+				}
 				return prev + 1;
 			});
 		}, STEP_DURATION);
 		return () => clearInterval(interval);
-	}, [timeline, timeline?.steps.length]);
+	}, [streaming, timeline]);
 
 	const step = timeline?.steps[currentStep];
 
@@ -137,7 +137,7 @@ export default function GlobeViewer({ timeline }: GlobeViewerProps) {
 				polygonSideColor={(f: object) =>
 					`${(f as GeoFeature).properties.color}88`
 				}
-				polygonAltitude={0.01}
+				polygonAltitude={0.006}
 				polygonStrokeColor={() => "rgba(255, 255, 255, 0.12)"}
 				polygonLabel={(f: object) => {
 					const feat = f as GeoFeature;
