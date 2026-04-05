@@ -20,7 +20,7 @@ export default function Home() {
     setTimeline(null);
 
     try {
-      const res = await fetch("http://localhost:8000/api/timeline", {
+      const res = await fetch("http://localhost:8001/api/timeline", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question }),

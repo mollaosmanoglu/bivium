@@ -92,6 +92,7 @@ dependencies = [
     { name = "fastapi" },
     { name = "openai-agents" },
     { name = "pydantic-settings" },
+    { name = "python-dotenv" },
     { name = "uvicorn" },
     { name = "uvloop" },
 ]
@@ -113,6 +114,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.135.3" },
     { name = "openai-agents", specifier = ">=0.13.4" },
     { name = "pydantic-settings", specifier = ">=2.13.1" },
+    { name = "python-dotenv", specifier = ">=1.2.2" },
     { name = "uvicorn", specifier = ">=0.43.0" },
     { name = "uvloop", specifier = ">=0.22.1" },
 ]

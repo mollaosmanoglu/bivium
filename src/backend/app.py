@@ -1,16 +1,20 @@
-from agents import InputGuardrailTripwireTriggered, Runner
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from dotenv import load_dotenv
 
-from src.backend.agent import historian
-from src.backend.models import AlternateTimeline
+load_dotenv(override=True)
+
+from agents import InputGuardrailTripwireTriggered, Runner  # noqa: E402
+from fastapi import FastAPI, HTTPException  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from pydantic import BaseModel  # noqa: E402
+
+from src.backend.agent import historian  # noqa: E402
+from src.backend.models import AlternateTimeline  # noqa: E402
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "http://localhost:3001"],
     allow_methods=["POST"],
     allow_headers=["*"],
 )

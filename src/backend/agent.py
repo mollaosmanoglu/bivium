@@ -42,6 +42,7 @@ class GuardrailOutput(BaseModel):
 
 guardrail_agent: Agent[None] = Agent(
     name="Input Validator",
+    model="gpt-4.1-nano",
     instructions=(
         "Determine if the user's input is a valid alternate history 'what if' "
         "question. It should ask about a counterfactual historical scenario. "
