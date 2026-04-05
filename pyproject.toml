@@ -26,10 +26,10 @@ quote-style = "double"
 indent-style = "space"
 
 [tool.pytest.ini_options]
-testpaths = ["backend/tests"]
+testpaths = ["src/backend/tests"]
 
 [tool.pyright]
 typeCheckingMode = "strict"
-include = ["backend"]
+include = ["src/backend"]
 venvPath = "."
 venv = ".venv"
