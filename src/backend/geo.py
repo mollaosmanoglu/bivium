@@ -46,30 +46,10 @@ def _load() -> None:
         logger.info("Loaded provinces for %d countries", len(_provinces_by_country))
 
 
-def centroid_of_countries(iso_codes: list[str]) -> tuple[float, float]:
-    """Return (lat, lng) label point for a set of countries.
-
-    Uses the representative point of the largest polygon so the label
-    sits inside the biggest contiguous landmass, not in the ocean.
-    """
-    _load()
-    geoms = [
-        _country_geometries[iso] for iso in iso_codes if iso in _country_geometries
-    ]
-    if not geoms:
-        return (0.0, 0.0)
-    merged = unary_union(geoms)
-    # Pick the largest polygon from a MultiPolygon
-    if isinstance(merged, MultiPolygon):
-        largest = max(merged.geoms, key=lambda g: float(g.area))
-    else:
-        largest = merged
-    pt = largest.representative_point()
-    return (float(pt.y), float(pt.x))
-
-
-def merge_countries(iso_codes: list[str]) -> dict[str, Any] | None:
-    """Merge multiple country geometries into one GeoJSON geometry."""
+def merge_countries(
+    iso_codes: list[str],
+) -> tuple[dict[str, Any], float, float, float] | None:
+    """Merge country geometries. Returns (geojson, lat, lng, area) or None."""
     _load()
     geoms = [
         _country_geometries[iso] for iso in iso_codes if iso in _country_geometries
@@ -81,4 +61,9 @@ def merge_countries(iso_codes: list[str]) -> dict[str, Any] | None:
         merged = merged.buffer(0)
     if merged.is_empty:
         return None
-    return mapping(merged)  # type: ignore[return-value]
+    if isinstance(merged, MultiPolygon):
+        largest = max(merged.geoms, key=lambda g: float(g.area))
+    else:
+        largest = merged
+    pt = largest.representative_point()
+    return mapping(merged), float(pt.y), float(pt.x), float(merged.area)  # type: ignore[return-value]

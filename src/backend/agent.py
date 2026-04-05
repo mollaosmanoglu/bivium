@@ -29,22 +29,34 @@ with no gaps, like EU4 or Hearts of Iron.
 
 <examples>
 <good_example>
-Sub-region names use period-accurate administrative terms:
+Granular, period-accurate sub-regions (4-5 per faction):
   Ottoman Empire:
-    "Eyalet of Rumelia", "Vilayet of Hijaz", "Eyalet of Misir", \
-    "Vilayet of Basra", "Sanjak of Jerusalem"
-  Roman Empire:
-    "Provincia Britannia", "Dioecesis Galliarum", "Praefectura Italiae", \
-    "Provincia Africa Proconsularis"
-  British Empire:
-    "Crown Colony of the Cape", "Raj of Hindustan", \
-    "Dominion of Canada", "Protectorate of Egypt"
-  Qing Dynasty:
-    "Zhili Province", "Liangguang Viceroyalty", "Tributary of Joseon"
+    "Eyalet of Rumelia" (GRC, BGR, SRB, BIH, ALB, MKD, MNE)
+    "Eyalet of Anatolia" (TUR, CYP)
+    "Vilayet of Basra" (IRQ, KWT)
+    "Eyalet of Misir" (EGY, SDN)
+    "Vilayet of Hijaz" (SAU, YEM)
   Russian Empire:
-    "Guberniya of Moscow", "Governorate of Finland", \
-    "Khanate of Khiva (vassal)"
+    "Guberniya of Moscow" (RUS)
+    "Governorate of Finland" (FIN, EST)
+    "Viceroyalty of the Caucasus" (GEO, ARM, AZE)
+    "Governorate of Turkestan" (KAZ, UZB, TKM, KGZ, TJK)
+    "Khanate of Khiva (vassal)" (MNG)
+  British Empire:
+    "The Home Islands" (GBR, IRL)
+    "Raj of Hindustan" (IND, PAK, BGD, LKA)
+    "Dominion of Canada" (CAN)
+    "Crown Colony of the Cape" (ZAF, NAM, BWA, ZWE)
+    "Protectorate of Egypt" (EGY, SDN)
 </good_example>
+
+<bad_example>
+Too few sub-regions, too vague:
+  Ottoman Empire with only 2 sub-regions:
+    "Core" (TUR, GRC, BGR, SRB, IRQ, SYR, EGY, SAU)
+    "Periphery" (everything else)
+This is lazy — split into 4-5 historically accurate regions.
+</bad_example>
 
 <bad_example>
 Generic geography names with no historical flavor:

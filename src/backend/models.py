@@ -51,6 +51,9 @@ class MergedRegion(BaseModel):
     region_name: str
     color: str
     geometry: dict[str, Any]
+    label_lat: float
+    label_lng: float
+    area: float
 
 
 class GeoStep(BaseModel):

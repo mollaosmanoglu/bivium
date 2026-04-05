@@ -16,7 +16,7 @@ from openai.types.responses import ResponseTextDeltaEvent  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 
 from src.backend.agent import historian  # noqa: E402
-from src.backend.geo import centroid_of_countries, merge_countries  # noqa: E402
+from src.backend.geo import merge_countries  # noqa: E402
 from src.backend.models import (  # noqa: E402
     AlternateTimeline,
     FactionInfo,
@@ -59,32 +59,37 @@ def _merge_step(step: TimelineStep) -> GeoStep:
     regions: list[MergedRegion] = []
     faction_infos: list[FactionInfo] = []
     for faction in step.factions:
-        core_codes = faction.sub_regions[0].countries if faction.sub_regions else []
-        lat, lng = centroid_of_countries(core_codes)
-        faction_infos.append(
-            FactionInfo(
-                name=faction.name,
-                color=faction.color,
-                leader=faction.leader,
-                description=faction.description,
-                lat=lat,
-                lng=lng,
-            )
-        )
         n = len(faction.sub_regions)
+        best_lat, best_lng, best_area = 0.0, 0.0, 0.0
         for i, sub in enumerate(faction.sub_regions):
             shade_factor = 1.0 + (i * 0.15 / max(1, n - 1)) if n > 1 else 1.0
             color = _shade(faction.color, shade_factor)
-            geometry = merge_countries(sub.countries)
-            if geometry is not None:
+            result = merge_countries(sub.countries)
+            if result is not None:
+                geometry, lat, lng, area = result
                 regions.append(
                     MergedRegion(
                         faction_name=faction.name,
                         region_name=sub.name,
                         color=color,
                         geometry=geometry,
+                        label_lat=lat,
+                        label_lng=lng,
+                        area=area,
                     )
                 )
+                if area > best_area:
+                    best_lat, best_lng, best_area = lat, lng, area
+        faction_infos.append(
+            FactionInfo(
+                name=faction.name,
+                color=faction.color,
+                leader=faction.leader,
+                description=faction.description,
+                lat=best_lat,
+                lng=best_lng,
+            )
+        )
     return GeoStep(
         year=step.year,
         narration=step.narration,

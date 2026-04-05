@@ -37,6 +37,9 @@ interface MergedRegion {
 		type: string;
 		coordinates: number[][][] | number[][][][];
 	};
+	label_lat: number;
+	label_lng: number;
+	area: number;
 }
 
 interface TimelineStep {
@@ -136,7 +139,7 @@ export default function GlobeViewer({ timeline, streaming = false }: GlobeViewer
 	}, [streaming, timeline]);
 
 	const step = timeline?.steps[currentStep];
-	const labels = step?.factions.filter((f) => f.leader !== "-") ?? [];
+	const labels = step?.regions ?? [];
 
 	return (
 		<div className="relative h-screen w-screen bg-black">
@@ -160,18 +163,18 @@ export default function GlobeViewer({ timeline, streaming = false }: GlobeViewer
 				}}
 				polygonsTransitionDuration={800}
 				labelsData={labels}
-				labelLat={(d: object) => (d as FactionInfo).lat}
-				labelLng={(d: object) => (d as FactionInfo).lng}
-				labelText={(d: object) => (d as FactionInfo).name.toUpperCase()}
+				labelLat={(d: object) => (d as MergedRegion).label_lat}
+				labelLng={(d: object) => (d as MergedRegion).label_lng}
+				labelText={(d: object) => (d as MergedRegion).faction_name.toUpperCase()}
 				labelColor={() => "rgba(255, 255, 255, 0.85)"}
 				labelSize={(d: object) => {
-					const name = (d as FactionInfo).name;
-					return name.length > 15 ? 1.0 : 1.5;
+					const area = (d as MergedRegion).area;
+					return Math.max(0.3, Math.min(2.0, Math.sqrt(area) * 3));
 				}}
 				labelAltitude={0.007}
 				labelIncludeDot={false}
 				labelResolution={2}
-				labelsTransitionDuration={800}
+				labelsTransitionDuration={0}
 				atmosphereColor="#3a228a"
 				atmosphereAltitude={0.2}
 			/>
