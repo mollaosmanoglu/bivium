@@ -64,7 +64,9 @@ These break the historical illusion.
 - Include a catch-all faction (e.g. "Unaligned Territories") for countries \
 not part of a major power. Use #7f8c8d (gray) for these.
 - Use real ISO 3166-1 alpha-3 codes (TUR, GBR, USA, DEU, FRA, RUS, CHN, etc.)
-- Split factions into 2-5 sub-regions with historical names.
+- Split factions into 2-5 sub-regions with historical names. \
+List the homeland/core territory FIRST (e.g. "Prussian Heartland" before \
+"Kamerun Colony") — the label is placed on the first sub-region.
 - EU4-style saturated hex colors: deep reds, blues, greens, purples, oranges, \
 teals. No pastels.
 - Camera altitude: 1.0-3.0 (1.5 regional, 2.5 continental).

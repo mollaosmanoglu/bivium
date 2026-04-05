@@ -59,8 +59,8 @@ def _merge_step(step: TimelineStep) -> GeoStep:
     regions: list[MergedRegion] = []
     faction_infos: list[FactionInfo] = []
     for faction in step.factions:
-        all_codes = [c for sub in faction.sub_regions for c in sub.countries]
-        lat, lng = centroid_of_countries(all_codes)
+        core_codes = faction.sub_regions[0].countries if faction.sub_regions else []
+        lat, lng = centroid_of_countries(core_codes)
         faction_infos.append(
             FactionInfo(
                 name=faction.name,
