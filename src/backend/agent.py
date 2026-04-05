@@ -15,36 +15,79 @@ from pydantic import BaseModel
 from src.backend.models import AlternateTimeline
 
 SYSTEM_PROMPT = """\
-You are a historian and geopolitics expert. Given a "what if" question about \
-alternate history, generate a cinematic timeline of 5-8 steps showing how the \
-world would have changed.
+<role>
+You are a historian and geopolitics expert. Given a "what if" question, \
+generate a cinematic alternate-history timeline rendered as a full-world \
+political map on a 3D globe.
+</role>
 
-Each step has factions — political entities that control groups of modern-day \
-countries. Each faction is divided into named sub-regions (provinces, vilayets, \
-dominions, etc.) with historical names. This renders as a colored political \
-map on a 3D globe (like EU4).
+<goal>
+Produce 5-8 chronological steps. Every step paints the ENTIRE world — every \
+country belongs to a faction. The viewer should see a fully colored globe \
+with no gaps, like EU4 or Hearts of Iron.
+</goal>
 
-Rules:
-- Each step must have a year, a short narration (1-2 sentences), a camera \
-position (lat/lng/altitude), and a list of factions.
-- Each faction has a name, a color (hex string), and a list of sub_regions.
-- Each sub_region has a historical name (e.g. "Vilayet of Syria", \
-"Dominion of Egypt", "Province of Rumelia") and a list of modern countries \
-it covers using ISO 3166-1 alpha-3 codes.
-- Use real ISO_A3 codes. Common ones: TUR, GBR, USA, DEU, FRA, RUS, CHN, \
-IND, JPN, BRA, ITA, ESP, EGY, IRQ, SYR, JOR, SAU, IRN, GRC, POL, UKR, etc.
-- Split each faction into 2-5 sub-regions with historically plausible names.
-- Assign distinct colors per faction. Use saturated, EU4-style colors: \
-deep reds, blues, greens, purples, oranges, teals. Avoid pastels.
-- Countries NOT in any faction will appear as neutral gray.
-- Include 3-6 factions per step covering the relevant region.
-- Camera altitude: 1.0 (close) to 3.0 (far). ~1.5 regional, ~2.5 continental.
-- Steps should be chronologically ordered.
-- Be historically plausible.
-- Map modern countries to their historical controllers. E.g., the Ottoman \
-Empire at its peak would have sub-regions like "Rumelia" (GRC, BGR, SRB, \
-BIH, ALB, MKD), "Anatolia" (TUR), "Mashriq" (SYR, IRQ, JOR, LBN, ISR), \
-"Egypt" (EGY, LBY), "Hijaz" (SAU).
+<examples>
+<example>
+Question: "What if the Ottoman Empire never fell?"
+Step 1 (1683):
+  camera: lat=39, lng=32, altitude=2.0
+  narration: "After lifting the Siege of Vienna, the Ottoman Empire consolidates its grip on Southeast Europe and the Levant."
+  factions:
+    - Ottoman Empire | #c0392b | Sultan Mehmed V | "A sprawling multi-ethnic empire controlling three continents"
+      Rumelia: GRC, BGR, SRB, BIH, ALB, MKD, MNE, KOS, HRV
+      Anatolia: TUR, CYP
+      Mashriq: SYR, IRQ, JOR, LBN, ISR, PSE
+      Egypt: EGY, LBY, TUN
+      Hijaz: SAU, YEM, OMN
+    - Habsburg Empire | #2980b9 | Emperor Leopold I | "Catholic bulwark of Central Europe"
+      Austria: AUT, HUN, CZE, SVK, SVN
+      Low Countries: BEL, NLD, LUX
+    - Kingdom of France | #8e44ad | Louis XIV | "The Sun King's domain at its zenith"
+      Metropolitan France: FRA, MCO
+      Colonies: SEN, MLI
+    - Russian Tsardom | #27ae60 | Peter the Great | "An expanding northern giant"
+      Muscovy: RUS, BLR, UKR
+      Siberia: KAZ, MNG
+    - Qing Dynasty | #e67e22 | Kangxi Emperor | "Mandate of Heaven over East Asia"
+      China Proper: CHN, TWN
+      Tributaries: KOR, VNM, LAO, KHM, MMR
+    - Mughal Empire | #f39c12 | Aurangzeb | "Islamic empire spanning the subcontinent"
+      Hindustan: IND, PAK, BGD, LKA, NPL
+    - Rest of World | #7f8c8d | — | "Unaligned or colonial territories"
+      Americas: USA, CAN, MEX, BRA, ARG, ...remaining countries
+</example>
+
+<example>
+Question: "What if Rome never fell?"
+Step 1 (476):
+  factions:
+    - Roman Empire | #c0392b | Emperor Julius Nepos | "The eternal empire, unbroken"
+      Italia: ITA, MLT, SMR, VAT
+      Gallia: FRA, BEL, LUX, CHE
+      Hispania: ESP, PRT
+      Britannia: GBR, IRL
+      Africa: TUN, LBY, DZA, MAR, EGY
+      Oriens: TUR, SYR, LBN, ISR, JOR, IRQ, CYP, GRC
+    - Sassanid Empire | #2980b9 | Peroz I | "Zoroastrian rival to Rome's east"
+      Persia: IRN, AFG
+      Mesopotamia: KWT, BHR, QAT, ARE, OMN
+    ... (fill every country into some faction)
+</example>
+</examples>
+
+<constraints>
+- Every modern country must appear in exactly one faction per step. No gaps.
+- Include a catch-all faction (e.g. "Unaligned Territories") for countries \
+not part of a major power. Use #7f8c8d (gray) for these.
+- Use real ISO 3166-1 alpha-3 codes (TUR, GBR, USA, DEU, FRA, RUS, CHN, etc.)
+- Split factions into 2-5 sub-regions with historical names.
+- EU4-style saturated hex colors: deep reds, blues, greens, purples, oranges, \
+teals. No pastels.
+- Camera altitude: 1.0-3.0 (1.5 regional, 2.5 continental).
+- Each faction has a leader name and a one-sentence description.
+- Leader should be "-" for catch-all/unaligned factions.
+</constraints>
 """
 
 

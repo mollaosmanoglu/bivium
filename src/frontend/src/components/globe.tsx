@@ -10,6 +10,7 @@ import {
 	useState,
 } from "react";
 import type { GlobeMethods } from "react-globe.gl";
+import { Card, CardContent } from "@/components/ui/card";
 
 const Globe = dynamic(() => import("react-globe.gl"), { ssr: false });
 
@@ -17,6 +18,13 @@ interface CameraPosition {
 	lat: number;
 	lng: number;
 	altitude: number;
+}
+
+interface FactionInfo {
+	name: string;
+	color: string;
+	leader: string;
+	description: string;
 }
 
 interface MergedRegion {
@@ -33,6 +41,7 @@ interface TimelineStep {
 	year: number;
 	narration: string;
 	camera: CameraPosition;
+	factions: FactionInfo[];
 	regions: MergedRegion[];
 }
 
@@ -92,23 +101,28 @@ export default function GlobeViewer({ timeline }: GlobeViewerProps) {
 		globeRef.current.pointOfView(step.camera, 1000);
 	}, [timeline, currentStep]);
 
+	// Start on first step when timeline appears
 	useEffect(() => {
-		if (!timeline) {
+		if (!timeline || timeline.steps.length === 0) {
 			setCurrentStep(-1);
 			return;
 		}
-		setCurrentStep(0);
+		if (currentStep === -1) {
+			setCurrentStep(0);
+		}
+	}, [timeline, timeline?.steps.length, currentStep]);
+
+	// Auto-advance when new steps arrive
+	useEffect(() => {
+		if (!timeline || timeline.steps.length === 0) return;
 		const interval = setInterval(() => {
 			setCurrentStep((prev) => {
-				if (prev >= timeline.steps.length - 1) {
-					clearInterval(interval);
-					return prev;
-				}
+				if (prev >= timeline.steps.length - 1) return prev;
 				return prev + 1;
 			});
 		}, STEP_DURATION);
 		return () => clearInterval(interval);
-	}, [timeline]);
+	}, [timeline, timeline?.steps.length]);
 
 	const step = timeline?.steps[currentStep];
 
@@ -137,27 +151,132 @@ export default function GlobeViewer({ timeline }: GlobeViewerProps) {
 				atmosphereAltitude={0.2}
 			/>
 
+			{/* Title */}
+			{timeline && (
+				<div className="absolute top-8 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
+					<h2 className="text-title text-white/80">{timeline.title}</h2>
+				</div>
+			)}
+
+			{/* Faction cards */}
 			<AnimatePresence mode="wait">
 				{step && (
 					<motion.div
-						key={currentStep}
-						initial={{ opacity: 0, y: 20 }}
-						animate={{ opacity: 1, y: 0 }}
-						exit={{ opacity: 0, y: -20 }}
+						key={`factions-${currentStep}`}
+						initial={{ opacity: 0, x: -20 }}
+						animate={{ opacity: 1, x: 0 }}
+						exit={{ opacity: 0, x: -20 }}
 						transition={{ duration: 0.5 }}
-						className="absolute bottom-16 left-1/2 -translate-x-1/2 max-w-lg text-center"
+						className="absolute top-20 left-4 flex flex-col gap-2 max-h-[calc(100vh-16rem)] overflow-y-auto z-10"
 					>
-						<p className="text-white/60 text-sm font-mono">{step.year}</p>
-						<p className="text-white text-lg mt-1">{step.narration}</p>
+						{step.factions
+							.filter((f) => f.leader !== "-")
+							.map((faction) => (
+								<Card
+									key={faction.name}
+									size="sm"
+									className="bg-white/5 border-white/10 backdrop-blur-md w-64"
+								>
+									<CardContent className="flex items-start gap-2 p-0">
+										<span
+											className="mt-0.5 h-3 w-3 shrink-0 rounded-full"
+											style={{ backgroundColor: faction.color }}
+										/>
+									<div className="min-w-0">
+											<p className="text-label text-white truncate">
+												{faction.name}
+											</p>
+											<p className="text-caption text-white/50 truncate">
+												{faction.leader}
+											</p>
+											<p className="text-caption text-white/40 mt-0.5 line-clamp-2">
+												{faction.description}
+											</p>
+										</div>
+									</CardContent>
+								</Card>
+							))}
 					</motion.div>
 				)}
 			</AnimatePresence>
 
-			{timeline && (
-				<div className="absolute top-8 left-1/2 -translate-x-1/2">
-					<h2 className="text-white/80 text-xl font-medium">
-						{timeline.title}
-					</h2>
+			{/* Narration + horizontal timeline */}
+			{timeline && timeline.steps.length > 0 && (
+				<div className="absolute bottom-0 left-0 right-0 z-10 pb-8">
+					{/* Narration text */}
+					<AnimatePresence mode="wait">
+						{step && (
+							<motion.p
+								key={`narration-${currentStep}`}
+								initial={{ opacity: 0, y: 10 }}
+								animate={{ opacity: 1, y: 0 }}
+								exit={{ opacity: 0, y: -10 }}
+								transition={{ duration: 0.4 }}
+								className="text-body text-white text-center max-w-lg mx-auto mb-6 px-4"
+							>
+								{step.narration}
+							</motion.p>
+						)}
+					</AnimatePresence>
+
+					{/* Dot timeline */}
+					<div className="flex items-center justify-center gap-0 px-12">
+						{timeline.steps.map((s, i) => {
+							const isActive = i === currentStep;
+							const isPast = i < currentStep;
+							return (
+								<div key={s.year} className="flex items-center">
+									{/* Connector line */}
+									{i > 0 && (
+										<motion.div
+											className="h-px w-8 sm:w-12"
+											initial={{ backgroundColor: "rgba(255,255,255,0.1)" }}
+											animate={{
+												backgroundColor: isPast || isActive
+													? "rgba(255,255,255,0.4)"
+													: "rgba(255,255,255,0.1)",
+											}}
+											transition={{ duration: 0.5 }}
+										/>
+									)}
+									{/* Dot + year */}
+									<button
+										type="button"
+										onClick={() => setCurrentStep(i)}
+										className="flex flex-col items-center gap-1.5 cursor-pointer"
+									>
+										<motion.div
+											className="rounded-full"
+											animate={{
+												width: isActive ? 12 : 8,
+												height: isActive ? 12 : 8,
+												backgroundColor: isActive
+													? "#ffffff"
+													: isPast
+														? "rgba(255,255,255,0.5)"
+														: "rgba(255,255,255,0.2)",
+												boxShadow: isActive
+													? "0 0 12px rgba(255,255,255,0.4)"
+													: "none",
+											}}
+											transition={{ type: "spring", stiffness: 300, damping: 25 }}
+										/>
+										<motion.span
+											className="text-caption font-mono"
+											animate={{
+												color: isActive
+													? "rgba(255,255,255,0.9)"
+													: "rgba(255,255,255,0.35)",
+											}}
+											transition={{ duration: 0.3 }}
+										>
+											{s.year}
+										</motion.span>
+									</button>
+								</div>
+							);
+						})}
+					</div>
 				</div>
 			)}
 		</div>

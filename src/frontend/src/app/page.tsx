@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import GlobeViewer, { type AlternateTimeline } from "@/components/globe";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,35 +12,76 @@ export default function Home() {
 	const [timeline, setTimeline] = useState<AlternateTimeline | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const abortRef = useRef<AbortController | null>(null);
 
-	async function handleSubmit(e: React.FormEvent) {
-		e.preventDefault();
-		if (!question.trim() || loading) return;
+	const handleSubmit = useCallback(
+		async (e: React.FormEvent) => {
+			e.preventDefault();
+			if (!question.trim() || loading) return;
 
-		setLoading(true);
-		setError(null);
-		setTimeline(null);
+			setLoading(true);
+			setError(null);
+			setTimeline(null);
 
-		try {
-			const res = await fetch("http://localhost:8001/api/timeline", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ question }),
-			});
+			abortRef.current?.abort();
+			const abort = new AbortController();
+			abortRef.current = abort;
 
-			if (!res.ok) {
-				const data = await res.json();
-				throw new Error(data.detail || "Something went wrong");
+			try {
+				const res = await fetch("http://localhost:8001/api/timeline/stream", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ question }),
+					signal: abort.signal,
+				});
+
+				if (!res.ok) {
+					const data = await res.json();
+					throw new Error(data.detail || "Something went wrong");
+				}
+
+				const reader = res.body?.getReader();
+				if (!reader) throw new Error("No response body");
+
+				const decoder = new TextDecoder();
+				let buf = "";
+
+				while (true) {
+					const { done, value } = await reader.read();
+					if (done) break;
+
+					buf += decoder.decode(value, { stream: true });
+					const lines = buf.split("\n");
+					buf = lines.pop() ?? "";
+
+					for (const line of lines) {
+						if (!line.startsWith("data: ")) continue;
+						const payload = JSON.parse(line.slice(6));
+
+						if (payload.type === "title") {
+							setTimeline({ title: payload.title, steps: [] });
+						} else if (payload.type === "step") {
+							setTimeline((prev) => {
+								if (!prev) return { title: "", steps: [payload] };
+								return { ...prev, steps: [...prev.steps, payload] };
+							});
+						} else if (payload.type === "done") {
+							setLoading(false);
+						}
+					}
+				}
+			} catch (err) {
+				if ((err as Error).name !== "AbortError") {
+					setError(
+						err instanceof Error ? err.message : "Something went wrong",
+					);
+				}
+			} finally {
+				setLoading(false);
 			}
-
-			const data: AlternateTimeline = await res.json();
-			setTimeline(data);
-		} catch (err) {
-			setError(err instanceof Error ? err.message : "Something went wrong");
-		} finally {
-			setLoading(false);
-		}
-	}
+		},
+		[question, loading],
+	);
 
 	return (
 		<div className="relative h-screen w-screen bg-black overflow-hidden">
@@ -80,7 +121,11 @@ export default function Home() {
 				<Button
 					variant="ghost"
 					className="absolute top-4 right-4 z-10 text-white/60 hover:text-white"
-					onClick={() => setTimeline(null)}
+					onClick={() => {
+						abortRef.current?.abort();
+						setTimeline(null);
+						setLoading(false);
+					}}
 				>
 					New question
 				</Button>

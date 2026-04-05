@@ -17,6 +17,8 @@ class SubRegion(BaseModel):
 class Faction(BaseModel):
     name: str
     color: str
+    leader: str
+    description: str
     sub_regions: list[SubRegion]
 
 
@@ -35,6 +37,13 @@ class AlternateTimeline(BaseModel):
 # --- Response models (with merged GeoJSON) ---
 
 
+class FactionInfo(BaseModel):
+    name: str
+    color: str
+    leader: str
+    description: str
+
+
 class MergedRegion(BaseModel):
     faction_name: str
     region_name: str
@@ -46,6 +55,7 @@ class GeoStep(BaseModel):
     year: int
     narration: str
     camera: CameraPosition
+    factions: list[FactionInfo]
     regions: list[MergedRegion]
 
 

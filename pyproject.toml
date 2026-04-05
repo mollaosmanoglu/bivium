@@ -1,7 +1,7 @@
 [project]
 name = "bivium"
 version = "0.1.0"
-description = "Add your description here"
+description = "Open-source alternate history engine — cinematic 3D globe animations from what-if questions"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

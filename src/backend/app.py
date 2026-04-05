@@ -1,5 +1,7 @@
+import json
 import logging
 import time
+from collections.abc import AsyncGenerator
 
 from dotenv import load_dotenv
 
@@ -9,15 +11,19 @@ from agents import InputGuardrailTripwireTriggered, Runner  # noqa: E402
 from fastapi import FastAPI, HTTPException  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.middleware.gzip import GZipMiddleware  # noqa: E402
+from fastapi.responses import StreamingResponse  # noqa: E402
+from openai.types.responses import ResponseTextDeltaEvent  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 
 from src.backend.agent import historian  # noqa: E402
 from src.backend.geo import merge_countries  # noqa: E402
 from src.backend.models import (  # noqa: E402
     AlternateTimeline,
+    FactionInfo,
     GeoStep,
     GeoTimeline,
     MergedRegion,
+    TimelineStep,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -49,35 +55,85 @@ def _shade(hex_color: str, factor: float) -> str:
     return f"#{r:02x}{g:02x}{b:02x}"
 
 
-def _merge_timeline(raw: AlternateTimeline) -> GeoTimeline:
-    geo_steps: list[GeoStep] = []
-    for step in raw.steps:
-        regions: list[MergedRegion] = []
-        for faction in step.factions:
-            n = len(faction.sub_regions)
-            for i, sub in enumerate(faction.sub_regions):
-                # Vary shade: first sub-region gets base color, rest get lighter
-                shade_factor = 1.0 + (i * 0.15 / max(1, n - 1)) if n > 1 else 1.0
-                color = _shade(faction.color, shade_factor)
-                geometry = merge_countries(sub.countries)
-                if geometry is not None:
-                    regions.append(
-                        MergedRegion(
-                            faction_name=faction.name,
-                            region_name=sub.name,
-                            color=color,
-                            geometry=geometry,
-                        )
-                    )
-        geo_steps.append(
-            GeoStep(
-                year=step.year,
-                narration=step.narration,
-                camera=step.camera,
-                regions=regions,
+def _merge_step(step: TimelineStep) -> GeoStep:
+    regions: list[MergedRegion] = []
+    faction_infos: list[FactionInfo] = []
+    for faction in step.factions:
+        faction_infos.append(
+            FactionInfo(
+                name=faction.name,
+                color=faction.color,
+                leader=faction.leader,
+                description=faction.description,
             )
         )
-    return GeoTimeline(title=raw.title, steps=geo_steps)
+        n = len(faction.sub_regions)
+        for i, sub in enumerate(faction.sub_regions):
+            shade_factor = 1.0 + (i * 0.15 / max(1, n - 1)) if n > 1 else 1.0
+            color = _shade(faction.color, shade_factor)
+            geometry = merge_countries(sub.countries)
+            if geometry is not None:
+                regions.append(
+                    MergedRegion(
+                        faction_name=faction.name,
+                        region_name=sub.name,
+                        color=color,
+                        geometry=geometry,
+                    )
+                )
+    return GeoStep(
+        year=step.year,
+        narration=step.narration,
+        camera=step.camera,
+        factions=faction_infos,
+        regions=regions,
+    )
+
+
+def _merge_timeline(raw: AlternateTimeline) -> GeoTimeline:
+    return GeoTimeline(
+        title=raw.title,
+        steps=[_merge_step(step) for step in raw.steps],
+    )
+
+
+def _try_parse_steps(buf: str) -> list[TimelineStep]:
+    """Extract complete TimelineStep objects from a partial JSON buffer."""
+    # Find the start of the steps array
+    idx = buf.find('"steps"')
+    if idx == -1:
+        return []
+    bracket = buf.find("[", idx)
+    if bracket == -1:
+        return []
+
+    steps: list[TimelineStep] = []
+    depth = 0
+    start = -1
+    i = bracket + 1
+    while i < len(buf):
+        ch = buf[i]
+        if ch == '"':
+            # Skip string contents (handle escaped quotes)
+            i += 1
+            while i < len(buf) and buf[i] != '"':
+                if buf[i] == "\\":
+                    i += 1
+                i += 1
+        elif ch == "{":
+            if depth == 0:
+                start = i
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0 and start != -1:
+                try:
+                    steps.append(TimelineStep.model_validate_json(buf[start : i + 1]))
+                except Exception:  # noqa: BLE001
+                    pass
+                start = -1
+        i += 1
+    return steps
 
 
 @app.post("/api/timeline")
@@ -94,13 +150,81 @@ async def create_timeline(req: TimelineRequest) -> GeoTimeline:
     raw: AlternateTimeline = result.final_output  # type: ignore[assignment]
     elapsed = time.monotonic() - start
     logger.info("Generated %d steps in %.1fs: %s", len(raw.steps), elapsed, raw.title)
-    for i, step in enumerate(raw.steps):
-        for faction in step.factions:
-            subs = ", ".join(
-                f"{s.name}({len(s.countries)})" for s in faction.sub_regions
-            )
-            logger.info("  Step %d [%d] %s: %s", i, step.year, faction.name, subs)
-
     geo = _merge_timeline(raw)
     logger.info("Merged %d regions", sum(len(s.regions) for s in geo.steps))
     return geo
+
+
+def _sse(event_type: str, data: object) -> str:
+    return f"data: {json.dumps({'type': event_type, **data} if isinstance(data, dict) else {'type': event_type, 'data': data})}\n\n"
+
+
+async def _stream_timeline(question: str) -> AsyncGenerator[str, None]:
+    start = time.monotonic()
+    result = Runner.run_streamed(historian, question)
+    buf = ""
+    sent = 0
+    title_sent = False
+
+    async for event in result.stream_events():
+        if event.type == "raw_response_event" and isinstance(
+            event.data, ResponseTextDeltaEvent
+        ):
+            buf += event.data.delta
+
+            # Send title as soon as we can parse it
+            if not title_sent:
+                ti = buf.find('"title"')
+                if ti != -1:
+                    # Find the title string value
+                    colon = buf.find(":", ti)
+                    if colon != -1:
+                        q1 = buf.find('"', colon + 1)
+                        if q1 != -1:
+                            q2 = q1 + 1
+                            while q2 < len(buf) and buf[q2] != '"':
+                                if buf[q2] == "\\":
+                                    q2 += 1
+                                q2 += 1
+                            if q2 < len(buf):
+                                title = buf[q1 + 1 : q2]
+                                yield _sse("title", {"title": title})
+                                title_sent = True
+                                logger.info("Streamed title: %s", title)
+
+            # Try to parse completed steps
+            parsed = _try_parse_steps(buf)
+            for step in parsed[sent:]:
+                geo_step = _merge_step(step)
+                yield _sse("step", json.loads(geo_step.model_dump_json()))
+                sent += 1
+                logger.info(
+                    "Streamed step %d [%d] (%.1fs)",
+                    sent,
+                    step.year,
+                    time.monotonic() - start,
+                )
+
+    # Send any remaining steps from final output
+    if result.final_output:
+        raw: AlternateTimeline = result.final_output  # type: ignore[assignment]
+        if not title_sent:
+            yield _sse("title", {"title": raw.title})
+        for step in raw.steps[sent:]:
+            geo_step = _merge_step(step)
+            yield _sse("step", json.loads(geo_step.model_dump_json()))
+            sent += 1
+
+    elapsed = time.monotonic() - start
+    logger.info("Stream complete: %d steps in %.1fs", sent, elapsed)
+    yield _sse("done", {})
+
+
+@app.post("/api/timeline/stream")
+async def stream_timeline(req: TimelineRequest) -> StreamingResponse:
+    logger.info("Stream question: %s", req.question)
+    return StreamingResponse(
+        _stream_timeline(req.question),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
