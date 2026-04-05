@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function Home() {
 	const [question, setQuestion] = useState("");
@@ -115,7 +116,7 @@ export default function Home() {
 										disabled={loading}
 									/>
 									<Button type="submit" disabled={loading} variant="secondary">
-										{loading ? "..." : "Go"}
+										{loading ? <Spinner /> : "Go"}
 									</Button>
 								</div>
 								{error && <Badge variant="destructive">{error}</Badge>}

@@ -102,15 +102,24 @@ export default function GlobeViewer({ timeline, streaming = false }: GlobeViewer
 		globeRef.current.pointOfView(step.camera, 1000);
 	}, [timeline, currentStep]);
 
+	const playedRef = useRef(false);
+
+	// Reset played flag when timeline changes entirely (new question)
+	useEffect(() => {
+		playedRef.current = false;
+	}, [timeline?.title]);
+
 	// During streaming: show the latest step as it arrives
 	useEffect(() => {
 		if (!streaming || !timeline) return;
 		setCurrentStep(timeline.steps.length - 1);
 	}, [streaming, timeline?.steps.length]);
 
-	// After streaming: auto-advance from step 0
+	// After streaming: auto-advance from step 0, once
 	useEffect(() => {
 		if (streaming || !timeline || timeline.steps.length === 0) return;
+		if (playedRef.current) return;
+		playedRef.current = true;
 		setCurrentStep(0);
 		const interval = setInterval(() => {
 			setCurrentStep((prev) => {
@@ -138,7 +147,7 @@ export default function GlobeViewer({ timeline, streaming = false }: GlobeViewer
 					`${(f as GeoFeature).properties.color}88`
 				}
 				polygonAltitude={0.006}
-				polygonStrokeColor={() => "rgba(255, 255, 255, 0.12)"}
+				polygonStrokeColor={() => "rgba(255, 255, 255, 0.3)"}
 				polygonLabel={(f: object) => {
 					const feat = f as GeoFeature;
 					return `<div style="padding:4px 8px;background:rgba(0,0,0,0.7);border-radius:4px;color:white;text-align:center">
