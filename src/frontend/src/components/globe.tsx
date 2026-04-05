@@ -25,8 +25,6 @@ interface FactionInfo {
 	color: string;
 	leader: string;
 	description: string;
-	lat: number;
-	lng: number;
 }
 
 interface MergedRegion {
@@ -37,9 +35,6 @@ interface MergedRegion {
 		type: string;
 		coordinates: number[][][] | number[][][][];
 	};
-	label_lat: number;
-	label_lng: number;
-	area: number;
 }
 
 interface TimelineStep {
@@ -63,7 +58,6 @@ interface GlobeViewerProps {
 type GeoFeature = {
 	type: "Feature";
 	properties: {
-		key: string;
 		faction_name: string;
 		region_name: string;
 		color: string;
@@ -73,13 +67,16 @@ type GeoFeature = {
 
 const STEP_DURATION = 4000;
 
-export default function GlobeViewer({ timeline, streaming = false }: GlobeViewerProps) {
+export default function GlobeViewer({
+	timeline,
+	streaming = false,
+}: GlobeViewerProps) {
 	const globeRef = useRef<GlobeMethods>(undefined) as MutableRefObject<
 		GlobeMethods | undefined
 	>;
 	const [currentStep, setCurrentStep] = useState(0);
+	const playedRef = useRef(false);
 
-	// Pre-build all step polygons once when timeline arrives
 	const allStepPolygons = useMemo<GeoFeature[][]>(() => {
 		if (!timeline) return [];
 		return timeline.steps.map((step) =>
@@ -88,7 +85,6 @@ export default function GlobeViewer({ timeline, streaming = false }: GlobeViewer
 				.map((r) => ({
 					type: "Feature" as const,
 					properties: {
-						key: `${r.faction_name}::${r.region_name}`,
 						faction_name: r.faction_name,
 						region_name: r.region_name,
 						color: r.color,
@@ -99,28 +95,28 @@ export default function GlobeViewer({ timeline, streaming = false }: GlobeViewer
 	}, [timeline]);
 
 	const polygons = allStepPolygons[currentStep] ?? [];
+	const step = timeline?.steps[currentStep];
 
+	// Camera
 	useEffect(() => {
 		if (!timeline) return;
-		const step = timeline.steps[currentStep];
-		if (!step || !globeRef.current) return;
-		globeRef.current.pointOfView(step.camera, 1000);
+		const s = timeline.steps[currentStep];
+		if (!s || !globeRef.current) return;
+		globeRef.current.pointOfView(s.camera, 1000);
 	}, [timeline, currentStep]);
 
-	const playedRef = useRef(false);
-
-	// Reset played flag when timeline changes entirely (new question)
+	// Reset on new question
 	useEffect(() => {
 		playedRef.current = false;
 	}, [timeline?.title]);
 
-	// During streaming: show the latest step as it arrives
+	// Streaming: follow latest step
 	useEffect(() => {
 		if (!streaming || !timeline) return;
 		setCurrentStep(timeline.steps.length - 1);
 	}, [streaming, timeline?.steps.length]);
 
-	// After streaming: auto-advance from step 0, once
+	// Playback: auto-advance once after streaming ends
 	useEffect(() => {
 		if (streaming || !timeline || timeline.steps.length === 0) return;
 		if (playedRef.current) return;
@@ -138,9 +134,6 @@ export default function GlobeViewer({ timeline, streaming = false }: GlobeViewer
 		return () => clearInterval(interval);
 	}, [streaming, timeline]);
 
-	const step = timeline?.steps[currentStep];
-	const labels = step?.regions ?? [];
-
 	return (
 		<div className="relative h-screen w-screen bg-black">
 			<Globe
@@ -149,11 +142,9 @@ export default function GlobeViewer({ timeline, streaming = false }: GlobeViewer
 				backgroundImageUrl="//cdn.jsdelivr.net/npm/three-globe/example/img/night-sky.png"
 				polygonsData={polygons}
 				polygonCapColor={(f: object) => (f as GeoFeature).properties.color}
-				polygonSideColor={(f: object) =>
-					`${(f as GeoFeature).properties.color}88`
-				}
-				polygonAltitude={0.006}
-				polygonStrokeColor={() => "rgba(255, 255, 255, 0.3)"}
+				polygonSideColor={() => "rgba(0, 0, 0, 0)"}
+				polygonAltitude={0.01}
+				polygonStrokeColor={() => "rgba(255, 255, 255, 0.15)"}
 				polygonLabel={(f: object) => {
 					const feat = f as GeoFeature;
 					return `<div style="padding:4px 8px;background:rgba(0,0,0,0.7);border-radius:4px;color:white;text-align:center">
@@ -161,20 +152,7 @@ export default function GlobeViewer({ timeline, streaming = false }: GlobeViewer
 						<span style="color:${feat.properties.color}">${feat.properties.region_name}</span>
 					</div>`;
 				}}
-				polygonsTransitionDuration={800}
-				labelsData={labels}
-				labelLat={(d: object) => (d as MergedRegion).label_lat}
-				labelLng={(d: object) => (d as MergedRegion).label_lng}
-				labelText={(d: object) => (d as MergedRegion).faction_name.toUpperCase()}
-				labelColor={() => "rgba(255, 255, 255, 0.85)"}
-				labelSize={(d: object) => {
-					const area = (d as MergedRegion).area;
-					return Math.max(0.3, Math.min(2.0, Math.sqrt(area) * 3));
-				}}
-				labelAltitude={0.007}
-				labelIncludeDot={false}
-				labelResolution={2}
-				labelsTransitionDuration={0}
+				polygonsTransitionDuration={0}
 				atmosphereColor="#3a228a"
 				atmosphereAltitude={0.2}
 			/>
@@ -210,7 +188,7 @@ export default function GlobeViewer({ timeline, streaming = false }: GlobeViewer
 											className="mt-0.5 h-3 w-3 shrink-0 rounded-full"
 											style={{ backgroundColor: faction.color }}
 										/>
-									<div className="min-w-0">
+										<div className="min-w-0">
 											<p className="text-label text-white truncate">
 												{faction.name}
 											</p>
@@ -228,10 +206,9 @@ export default function GlobeViewer({ timeline, streaming = false }: GlobeViewer
 				)}
 			</AnimatePresence>
 
-			{/* Narration + horizontal timeline */}
+			{/* Narration + timeline */}
 			{timeline && timeline.steps.length > 0 && (
-				<div className="absolute bottom-0 left-0 right-0 z-10 pb-8">
-					{/* Narration text */}
+				<div className="absolute bottom-0 left-0 right-0 z-10 pb-8 pointer-events-none">
 					<AnimatePresence mode="wait">
 						{step && (
 							<motion.p
@@ -247,35 +224,31 @@ export default function GlobeViewer({ timeline, streaming = false }: GlobeViewer
 						)}
 					</AnimatePresence>
 
-					{/* Dot timeline */}
-					<div className="flex items-center justify-center gap-0 px-12">
+					<div className="flex items-center justify-center gap-0 px-12 pointer-events-auto">
 						{timeline.steps.map((s, i) => {
 							const isActive = i === currentStep;
 							const isPast = i < currentStep;
 							return (
 								<div key={s.year} className="flex items-center">
-									{/* Connector line */}
 									{i > 0 && (
-										<motion.div
-											className="h-px w-8 sm:w-12"
-											initial={{ backgroundColor: "rgba(255,255,255,0.1)" }}
-											animate={{
-												backgroundColor: isPast || isActive
-													? "rgba(255,255,255,0.4)"
-													: "rgba(255,255,255,0.1)",
+										<div
+											className="h-px w-8 sm:w-12 transition-colors duration-500"
+											style={{
+												backgroundColor:
+													isPast || isActive
+														? "rgba(255,255,255,0.4)"
+														: "rgba(255,255,255,0.1)",
 											}}
-											transition={{ duration: 0.5 }}
 										/>
 									)}
-									{/* Dot + year */}
 									<button
 										type="button"
 										onClick={() => setCurrentStep(i)}
 										className="flex flex-col items-center gap-1.5 cursor-pointer"
 									>
-										<motion.div
-											className="rounded-full"
-											animate={{
+										<div
+											className="rounded-full transition-all duration-300"
+											style={{
 												width: isActive ? 12 : 8,
 												height: isActive ? 12 : 8,
 												backgroundColor: isActive
@@ -287,19 +260,17 @@ export default function GlobeViewer({ timeline, streaming = false }: GlobeViewer
 													? "0 0 12px rgba(255,255,255,0.4)"
 													: "none",
 											}}
-											transition={{ type: "spring", stiffness: 300, damping: 25 }}
 										/>
-										<motion.span
-											className="text-caption font-mono"
-											animate={{
+										<span
+											className="text-caption font-mono transition-colors duration-300"
+											style={{
 												color: isActive
 													? "rgba(255,255,255,0.9)"
 													: "rgba(255,255,255,0.35)",
 											}}
-											transition={{ duration: 0.3 }}
 										>
 											{s.year}
-										</motion.span>
+										</span>
 									</button>
 								</div>
 							);

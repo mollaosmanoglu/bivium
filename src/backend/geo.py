@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from shapely.geometry import MultiPolygon, mapping, shape
+from shapely.geometry import mapping, shape
 from shapely.ops import unary_union
 
 logger = logging.getLogger("bivium")
@@ -46,10 +46,8 @@ def _load() -> None:
         logger.info("Loaded provinces for %d countries", len(_provinces_by_country))
 
 
-def merge_countries(
-    iso_codes: list[str],
-) -> tuple[dict[str, Any], float, float, float] | None:
-    """Merge country geometries. Returns (geojson, lat, lng, area) or None."""
+def merge_countries(iso_codes: list[str]) -> dict[str, Any] | None:
+    """Merge multiple country geometries into one GeoJSON geometry."""
     _load()
     geoms = [
         _country_geometries[iso] for iso in iso_codes if iso in _country_geometries
@@ -61,9 +59,4 @@ def merge_countries(
         merged = merged.buffer(0)
     if merged.is_empty:
         return None
-    if isinstance(merged, MultiPolygon):
-        largest = max(merged.geoms, key=lambda g: float(g.area))
-    else:
-        largest = merged
-    pt = largest.representative_point()
-    return mapping(merged), float(pt.y), float(pt.x), float(merged.area)  # type: ignore[return-value]
+    return mapping(merged)  # type: ignore[return-value]
