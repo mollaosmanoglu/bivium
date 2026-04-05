@@ -47,7 +47,12 @@ interface GlobeViewerProps {
 
 type GeoFeature = {
 	type: "Feature";
-	properties: { faction_name: string; region_name: string; color: string };
+	properties: {
+		key: string;
+		faction_name: string;
+		region_name: string;
+		color: string;
+	};
 	geometry: { type: string; coordinates: number[][][] | number[][][][] };
 };
 
@@ -59,20 +64,26 @@ export default function GlobeViewer({ timeline }: GlobeViewerProps) {
 	>;
 	const [currentStep, setCurrentStep] = useState(-1);
 
-	const polygons = useMemo<GeoFeature[]>(() => {
-		if (!timeline || currentStep < 0) return [];
-		const step = timeline.steps[currentStep];
-		if (!step) return [];
-		return step.regions.map((r) => ({
-			type: "Feature",
-			properties: {
-				faction_name: r.faction_name,
-				region_name: r.region_name,
-				color: r.color,
-			},
-			geometry: r.geometry,
-		}));
-	}, [timeline, currentStep]);
+	// Pre-build all step polygons once when timeline arrives
+	const allStepPolygons = useMemo<GeoFeature[][]>(() => {
+		if (!timeline) return [];
+		return timeline.steps.map((step) =>
+			step.regions
+				.filter((r) => r.geometry)
+				.map((r) => ({
+					type: "Feature" as const,
+					properties: {
+						key: `${r.faction_name}::${r.region_name}`,
+						faction_name: r.faction_name,
+						region_name: r.region_name,
+						color: r.color,
+					},
+					geometry: r.geometry,
+				})),
+		);
+	}, [timeline]);
+
+	const polygons = currentStep >= 0 ? (allStepPolygons[currentStep] ?? []) : [];
 
 	useEffect(() => {
 		if (!timeline || currentStep < 0) return;
