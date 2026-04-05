@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic import BaseModel
 
 
@@ -7,10 +9,15 @@ class CameraPosition(BaseModel):
     altitude: float
 
 
+class SubRegion(BaseModel):
+    name: str
+    countries: list[str]
+
+
 class Faction(BaseModel):
     name: str
     color: str
-    countries: list[str]
+    sub_regions: list[SubRegion]
 
 
 class TimelineStep(BaseModel):
@@ -23,3 +30,25 @@ class TimelineStep(BaseModel):
 class AlternateTimeline(BaseModel):
     title: str
     steps: list[TimelineStep]
+
+
+# --- Response models (with merged GeoJSON) ---
+
+
+class MergedRegion(BaseModel):
+    faction_name: str
+    region_name: str
+    color: str
+    geometry: dict[str, Any]
+
+
+class GeoStep(BaseModel):
+    year: int
+    narration: str
+    camera: CameraPosition
+    regions: list[MergedRegion]
+
+
+class GeoTimeline(BaseModel):
+    title: str
+    steps: list[GeoStep]

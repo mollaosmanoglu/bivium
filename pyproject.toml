@@ -9,6 +9,7 @@ dependencies = [
     "openai-agents>=0.13.4",
     "pydantic-settings>=2.13.1",
     "python-dotenv>=1.2.2",
+    "shapely>=2.1.2",
     "uvicorn>=0.43.0",
     "uvloop>=0.22.1",
 ]

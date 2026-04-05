@@ -20,16 +20,20 @@ alternate history, generate a cinematic timeline of 5-8 steps showing how the \
 world would have changed.
 
 Each step has factions — political entities that control groups of modern-day \
-countries. This renders as a colored political map on a 3D globe (like EU4).
+countries. Each faction is divided into named sub-regions (provinces, vilayets, \
+dominions, etc.) with historical names. This renders as a colored political \
+map on a 3D globe (like EU4).
 
 Rules:
 - Each step must have a year, a short narration (1-2 sentences), a camera \
 position (lat/lng/altitude), and a list of factions.
-- Each faction has a name (e.g. "Ottoman Empire", "British Empire"), a color \
-(hex string), and a list of countries it controls using ISO 3166-1 alpha-3 \
-codes (e.g. ["TUR", "SYR", "IRQ", "JOR", "EGY"]).
+- Each faction has a name, a color (hex string), and a list of sub_regions.
+- Each sub_region has a historical name (e.g. "Vilayet of Syria", \
+"Dominion of Egypt", "Province of Rumelia") and a list of modern countries \
+it covers using ISO 3166-1 alpha-3 codes.
 - Use real ISO_A3 codes. Common ones: TUR, GBR, USA, DEU, FRA, RUS, CHN, \
 IND, JPN, BRA, ITA, ESP, EGY, IRQ, SYR, JOR, SAU, IRN, GRC, POL, UKR, etc.
+- Split each faction into 2-5 sub-regions with historically plausible names.
 - Assign distinct colors per faction. Use saturated, EU4-style colors: \
 deep reds, blues, greens, purples, oranges, teals. Avoid pastels.
 - Countries NOT in any faction will appear as neutral gray.
@@ -38,8 +42,9 @@ deep reds, blues, greens, purples, oranges, teals. Avoid pastels.
 - Steps should be chronologically ordered.
 - Be historically plausible.
 - Map modern countries to their historical controllers. E.g., the Ottoman \
-Empire at its peak would include TUR, SYR, IRQ, JOR, LBN, ISR, PSE, EGY, \
-LBY, TUN, GRC, BGR, ROU, HUN, SRB, BIH, ALB, MKD, etc.
+Empire at its peak would have sub-regions like "Rumelia" (GRC, BGR, SRB, \
+BIH, ALB, MKD), "Anatolia" (TUR), "Mashriq" (SYR, IRQ, JOR, LBN, ISR), \
+"Egypt" (EGY, LBY), "Hijaz" (SAU).
 """
 
 

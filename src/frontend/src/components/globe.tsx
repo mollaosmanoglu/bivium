@@ -4,7 +4,6 @@ import { AnimatePresence, motion } from "motion/react";
 import dynamic from "next/dynamic";
 import {
 	type MutableRefObject,
-	useCallback,
 	useEffect,
 	useMemo,
 	useRef,
@@ -14,23 +13,27 @@ import type { GlobeMethods } from "react-globe.gl";
 
 const Globe = dynamic(() => import("react-globe.gl"), { ssr: false });
 
-interface Faction {
-	name: string;
-	color: string;
-	countries: string[];
-}
-
 interface CameraPosition {
 	lat: number;
 	lng: number;
 	altitude: number;
 }
 
+interface MergedRegion {
+	faction_name: string;
+	region_name: string;
+	color: string;
+	geometry: {
+		type: string;
+		coordinates: number[][][] | number[][][][];
+	};
+}
+
 interface TimelineStep {
 	year: number;
 	narration: string;
 	camera: CameraPosition;
-	factions: Faction[];
+	regions: MergedRegion[];
 }
 
 export interface AlternateTimeline {
@@ -43,38 +46,32 @@ interface GlobeViewerProps {
 }
 
 type GeoFeature = {
-	properties: { ISO_A3: string; NAME: string };
+	type: "Feature";
+	properties: { faction_name: string; region_name: string; color: string };
+	geometry: { type: string; coordinates: number[][][] | number[][][][] };
 };
 
 const STEP_DURATION = 4000;
-const NEUTRAL_COLOR = "rgba(80, 80, 80, 0.3)";
-const NEUTRAL_SIDE = "rgba(60, 60, 60, 0.2)";
 
 export default function GlobeViewer({ timeline }: GlobeViewerProps) {
 	const globeRef = useRef<GlobeMethods>(undefined) as MutableRefObject<
 		GlobeMethods | undefined
 	>;
-	const [countries, setCountries] = useState<GeoFeature[]>([]);
 	const [currentStep, setCurrentStep] = useState(-1);
 
-	useEffect(() => {
-		fetch("/data/countries-110m.geojson")
-			.then((r) => r.json())
-			.then((data) => setCountries(data.features));
-	}, []);
-
-	// Build a map: ISO_A3 -> { color, factionName }
-	const colorMap = useMemo(() => {
-		const map = new Map<string, { color: string; name: string }>();
-		if (!timeline || currentStep < 0) return map;
+	const polygons = useMemo<GeoFeature[]>(() => {
+		if (!timeline || currentStep < 0) return [];
 		const step = timeline.steps[currentStep];
-		if (!step) return map;
-		for (const faction of step.factions) {
-			for (const iso of faction.countries) {
-				map.set(iso, { color: faction.color, name: faction.name });
-			}
-		}
-		return map;
+		if (!step) return [];
+		return step.regions.map((r) => ({
+			type: "Feature",
+			properties: {
+				faction_name: r.faction_name,
+				region_name: r.region_name,
+				color: r.color,
+			},
+			geometry: r.geometry,
+		}));
 	}, [timeline, currentStep]);
 
 	useEffect(() => {
@@ -102,51 +99,6 @@ export default function GlobeViewer({ timeline }: GlobeViewerProps) {
 		return () => clearInterval(interval);
 	}, [timeline]);
 
-	const getCapColor = useCallback(
-		(feat: object) => {
-			const f = feat as GeoFeature;
-			const entry = colorMap.get(f.properties.ISO_A3);
-			return entry ? entry.color : NEUTRAL_COLOR;
-		},
-		[colorMap],
-	);
-
-	const getSideColor = useCallback(
-		(feat: object) => {
-			const f = feat as GeoFeature;
-			const entry = colorMap.get(f.properties.ISO_A3);
-			return entry ? `${entry.color}88` : NEUTRAL_SIDE;
-		},
-		[colorMap],
-	);
-
-	const getAltitude = useCallback(
-		(feat: object) => {
-			const f = feat as GeoFeature;
-			return colorMap.has(f.properties.ISO_A3) ? 0.01 : 0.002;
-		},
-		[colorMap],
-	);
-
-	const getStrokeColor = useCallback(
-		() => "rgba(0, 0, 0, 0.05)",
-		[],
-	);
-
-	const getLabel = useCallback(
-		(feat: object) => {
-			const f = feat as GeoFeature;
-			const entry = colorMap.get(f.properties.ISO_A3);
-			if (entry) {
-				return `<div style="text-align:center;padding:4px 8px;background:rgba(0,0,0,0.7);border-radius:4px;color:white">
-					<b>${f.properties.NAME}</b><br/><span style="color:${entry.color}">${entry.name}</span>
-				</div>`;
-			}
-			return `<div style="padding:4px 8px;background:rgba(0,0,0,0.7);border-radius:4px;color:gray">${f.properties.NAME}</div>`;
-		},
-		[colorMap],
-	);
-
 	const step = timeline?.steps[currentStep];
 
 	return (
@@ -155,12 +107,20 @@ export default function GlobeViewer({ timeline }: GlobeViewerProps) {
 				ref={globeRef}
 				globeImageUrl="//cdn.jsdelivr.net/npm/three-globe/example/img/earth-night.jpg"
 				backgroundImageUrl="//cdn.jsdelivr.net/npm/three-globe/example/img/night-sky.png"
-				polygonsData={countries}
-				polygonCapColor={getCapColor}
-				polygonSideColor={getSideColor}
-				polygonAltitude={getAltitude}
-				polygonStrokeColor={getStrokeColor}
-				polygonLabel={getLabel}
+				polygonsData={polygons}
+				polygonCapColor={(f: object) => (f as GeoFeature).properties.color}
+				polygonSideColor={(f: object) =>
+					`${(f as GeoFeature).properties.color}88`
+				}
+				polygonAltitude={0.01}
+				polygonStrokeColor={() => "rgba(255, 255, 255, 0.12)"}
+				polygonLabel={(f: object) => {
+					const feat = f as GeoFeature;
+					return `<div style="padding:4px 8px;background:rgba(0,0,0,0.7);border-radius:4px;color:white;text-align:center">
+						<b>${feat.properties.faction_name}</b><br/>
+						<span style="color:${feat.properties.color}">${feat.properties.region_name}</span>
+					</div>`;
+				}}
 				polygonsTransitionDuration={800}
 				atmosphereColor="#3a228a"
 				atmosphereAltitude={0.2}
