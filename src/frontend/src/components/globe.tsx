@@ -11,12 +11,12 @@ import {
 } from "react";
 import type { GlobeMethods } from "react-globe.gl";
 import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-	DialogDescription,
-} from "@/components/ui/dialog";
+	Sheet,
+	SheetContent,
+	SheetHeader,
+	SheetTitle,
+	SheetDescription,
+} from "@/components/ui/sheet";
 
 const Globe = dynamic(() => import("react-globe.gl"), { ssr: false });
 
@@ -180,35 +180,38 @@ export default function GlobeViewer({
 				</div>
 			)}
 
-			{/* Faction detail dialog */}
-			<Dialog
+			{/* Faction detail sheet */}
+			<Sheet
 				open={!!selectedFaction}
-				onOpenChange={(open) => !open && setSelectedFaction(null)}
+				onOpenChange={(open: boolean) => !open && setSelectedFaction(null)}
 			>
-				{selectedFaction && (
-					<DialogContent className="bg-black/90 border-white/10 text-white max-w-sm">
-						<DialogHeader>
+				<SheetContent
+					side="left"
+					className="bg-black/90 border-white/10 text-white w-80"
+				>
+					{selectedFaction && (
+						<SheetHeader>
 							<div className="flex items-center gap-2">
 								<span
 									className="h-3 w-3 rounded-full shrink-0"
 									style={{ backgroundColor: selectedFaction.color }}
 								/>
-								<DialogTitle className="text-white">
+								<SheetTitle className="text-white">
 									{selectedFaction.name}
-								</DialogTitle>
+								</SheetTitle>
 							</div>
-							<DialogDescription className="text-white/50">
+							<SheetDescription className="text-white/50">
 								{selectedFaction.leader !== "-" && (
-									<span className="block text-white/70">
+									<span className="block text-white/70 mb-1">
 										{selectedFaction.leader}
 									</span>
 								)}
 								{selectedFaction.description}
-							</DialogDescription>
-						</DialogHeader>
-					</DialogContent>
-				)}
-			</Dialog>
+							</SheetDescription>
+						</SheetHeader>
+					)}
+				</SheetContent>
+			</Sheet>
 
 			{/* Narration + timeline */}
 			{timeline && timeline.steps.length > 0 && (
