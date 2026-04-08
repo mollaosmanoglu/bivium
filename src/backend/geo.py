@@ -46,6 +46,12 @@ def _load() -> None:
         logger.info("Loaded provinces for %d countries", len(_provinces_by_country))
 
 
+def all_iso_codes() -> set[str]:
+    """Return all ISO codes available in the countries GeoJSON."""
+    _load()
+    return set(_country_geometries.keys())
+
+
 def merge_countries(iso_codes: list[str]) -> dict[str, Any] | None:
     """Merge multiple country geometries into one GeoJSON geometry."""
     _load()

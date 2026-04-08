@@ -12,6 +12,7 @@ from agents import (
 from agents.items import TResponseInputItem
 from pydantic import BaseModel
 
+from src.backend.geo import all_iso_codes
 from src.backend.models import AlternateTimeline
 
 SYSTEM_PROMPT = """\
@@ -39,47 +40,107 @@ Always include a catch-all faction with id "unaligned", name \
 
 <examples>
 <good_example>
+10+ factions covering the ENTIRE world — no lazy gray blobs:
+
 Top-level factions:
   id="ottoman", name="Ottoman Empire", color="#8e44ad"
   id="russian", name="Russian Empire", color="#c0392b"
   id="british", name="British Empire", color="#2980b9"
-  id="unaligned", name="Unaligned Territories", color="#7f8c8d"
+  id="french", name="French Empire", color="#2c3e80"
+  id="german", name="German Empire", color="#505050"
+  id="austrian", name="Austro-Hungarian Empire", color="#d4a017"
+  id="american", name="United States", color="#1a5276"
+  id="japanese", name="Empire of Japan", color="#f39c12"
+  id="chinese", name="Qing Dynasty", color="#8b4513"
+  id="italian", name="Kingdom of Italy", color="#27ae60"
+  id="persian", name="Qajar Persia", color="#16a085"
+  id="latin_am", name="Latin American Republics", color="#e67e22"
+  id="unaligned", name="Independent States", color="#7f8c8d"
 
 Step (year: 1914), faction_states:
-  faction_id="ottoman":
-    "Eyalet of Rumelia" (GRC, BGR, SRB, BIH, ALB, MKD, MNE)
-    "Eyalet of Anatolia" (TUR, CYP)
-    "Vilayet of Basra" (IRQ, KWT)
-    "Eyalet of Misir" (EGY, SDN)
-    "Vilayet of Hijaz" (SAU, YEM)
-  faction_id="russian":
-    "Guberniya of Moscow" (RUS)
-    "Governorate of Finland" (FIN, EST)
-    "Viceroyalty of the Caucasus" (GEO, ARM, AZE)
-    "Governorate of Turkestan" (KAZ, UZB, TKM, KGZ, TJK)
   faction_id="british":
     "The Home Islands" (GBR, IRL)
-    "Raj of Hindustan" (IND, PAK, BGD, LKA)
+    "Raj of Hindustan" (IND, PAK, BGD, LKA, NPL, BTN)
     "Dominion of Canada" (CAN)
-    "Crown Colony of the Cape" (ZAF, NAM, BWA, ZWE)
+    "Australasian Dominions" (AUS, NZL)
+    "Southern African Holdings" (ZAF, NAM, BWA, ZWE, ZMB, MWI)
+    "West African Colonies" (NGA, GHA, SLE, GMB)
+    "East African Protectorates" (KEN, TZA, UGA)
+    "Egyptian Protectorate" (EGY, SDN)
+  faction_id="french":
+    "Metropolitan France" (FRA, BEL, LUX)
+    "Afrique Occidentale" (SEN, MLI, BFA, CIV, GIN, NER, TCD, MRT)
+    "Afrique Equatoriale" (CMR, GAB, COG, CAF)
+    "Maghreb Colonies" (DZA, TUN, MAR)
+    "Indochine" (VNM, LAO, KHM)
+    "Madagascar" (MDG)
+  faction_id="german":
+    "Kaiserreich Heartland" (DEU)
+    "Kamerun und Togo" (TGO, BEN, GNQ)
+    "Deutsch-Ostafrika" (BDI, RWA)
+    "Südwestafrika" (AGO, MOZ)
+  faction_id="ottoman":
+    "Eyalet of Rumelia" (GRC, BGR, ALB, MKD, MNE)
+    "Anatolia and the Straits" (TUR, CYP)
+    "Vilayet of the Levant" (SYR, LBN, JOR, PSE, ISR)
+    "Vilayet of Basra" (IRQ, KWT)
+    "Vilayet of Hijaz" (SAU, YEM, OMN, ARE, QAT, BHR)
+  faction_id="russian":
+    "European Russia" (RUS, BLR, UKR, MDA)
+    "Baltic Governorates" (LTU, LVA, EST, FIN)
+    "Caucasus Viceroyalty" (GEO, ARM, AZE)
+    "Turkestan" (KAZ, UZB, TKM, KGZ, TJK)
+    "Siberia and Far East" (MNG)
+  faction_id="austrian":
+    "Habsburg Crownlands" (AUT, HUN, CZE, SVK, HRV, SVN, BIH, SRB)
+    "Transylvania and Galicia" (ROU, POL)
+  faction_id="japanese":
+    "Home Islands" (JPN)
+    "Korean Protectorate" (PRK, KOR)
+    "Formosa" (TWN)
+  faction_id="chinese":
+    "Middle Kingdom" (CHN)
+  faction_id="american":
+    "Continental United States" (USA)
+    "Caribbean and Pacific" (CUB, DOM, HTI, JAM, TTO, PAN)
+    "Philippine Islands" (PHL)
+  faction_id="persian":
+    "Qajar Domains" (IRN, AFG)
+  faction_id="italian":
+    "Italian Peninsula" (ITA)
+    "Libyan Colony" (LBY)
+    "Horn of Africa" (ERI, SOM, DJI, ETH)
+  faction_id="latin_am":
+    "Southern Cone" (ARG, CHL, URY, PRY)
+    "Andean Republics" (PER, BOL, ECU, COL, VEN)
+    "Brazil" (BRA)
+    "Central America" (MEX, GTM, SLV, HND, NIC, CRI, BLZ)
+    "Guianas" (GUY, SUR)
   faction_id="unaligned":
-    "The Americas" (USA, MEX, BRA, ARG, ...)
-    "East Asia" (CHN, JPN, KOR, ...)
+    "Nordic Neutrals" (DNK, NOR, SWE, ISL)
+    "Iberian Kingdoms" (ESP, PRT)
+    "Low Countries" (NLD, CHE)
+    "Southeast Asian Kingdoms" (THA, MMR)
+    "Pacific Islands" (IDN, MYS, BRN, TLS, PNG, FJI, SGP)
+    "Remaining Africa" (LBR, COD, GNB, SWZ, LSO)
 </good_example>
 
 <bad_example>
-Changing faction colors or names between steps:
-  Step 1: "Ottoman Empire" color="#8e44ad"
-  Step 2: "Ottoman Federation" color="#6c5ce7"
-This breaks visual continuity. Define once, reference by id.
+Only 3 factions + a massive "Unaligned" blob:
+  Ottoman Empire (20 countries)
+  British Empire (15 countries)
+  Russian Empire (10 countries)
+  Unaligned Territories (128 countries in 2 sub-regions!)
+This is lazy. France, Germany, Austria-Hungary, Japan, USA, Italy, Persia, \
+China, and Latin America all deserve their own factions. Aim for 8-15 factions \
+so the entire globe is richly colored.
 </bad_example>
 
 <bad_example>
-Too few sub-regions, too vague:
-  faction_id="ottoman":
-    "Core" (TUR, GRC, BGR, SRB, IRQ, SYR, EGY, SAU)
-    "Periphery" (everything else)
-This is lazy — split into granular, historically accurate regions.
+Vague sub-region names:
+  "Global Independents" (USA, CAN, MEX, BRA, ARG, CHN, JPN, ...)
+  "African and Asian Independents" (60+ countries)
+These are not real historical groupings. Use period-accurate names.
 </bad_example>
 </examples>
 
@@ -130,10 +191,24 @@ async def whatif_guardrail(
     )
 
 
+def _dynamic_instructions(ctx: RunContextWrapper[None], agent: Agent[None]) -> str:
+    codes = sorted(all_iso_codes())
+    return SYSTEM_PROMPT + (
+        "\n\n<valid_iso_codes>\n"
+        f"There are exactly {len(codes)} countries in the world map. "
+        "You MUST assign ALL of them to a faction in EVERY step. "
+        "If a country is not part of a major power, put it in the "
+        '"unaligned" faction. Zero countries may be left out — the globe '
+        "must be fully colored with no dark/empty areas.\n\n"
+        f"{', '.join(codes)}\n"
+        "</valid_iso_codes>"
+    )
+
+
 historian: Agent[None] = Agent(
     name="Historian",
-    model="gpt-5.4-mini",
-    instructions=SYSTEM_PROMPT,
+    model="gpt-5.4",
+    instructions=_dynamic_instructions,
     output_type=AlternateTimeline,
     # input_guardrails=[InputGuardrail(guardrail_function=whatif_guardrail)],
 )
