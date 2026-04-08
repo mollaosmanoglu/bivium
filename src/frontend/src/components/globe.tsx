@@ -10,7 +10,13 @@ import {
 	useState,
 } from "react";
 import type { GlobeMethods } from "react-globe.gl";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+	DialogDescription,
+} from "@/components/ui/dialog";
 
 const Globe = dynamic(() => import("react-globe.gl"), { ssr: false });
 
@@ -25,6 +31,8 @@ interface FactionInfo {
 	color: string;
 	leader: string;
 	description: string;
+	lat: number;
+	lng: number;
 }
 
 interface MergedRegion {
@@ -74,6 +82,9 @@ export default function GlobeViewer({
 		GlobeMethods | undefined
 	>;
 	const [currentStep, setCurrentStep] = useState(0);
+	const [selectedFaction, setSelectedFaction] = useState<FactionInfo | null>(
+		null,
+	);
 
 	const allStepPolygons = useMemo<GeoFeature[][]>(() => {
 		if (!timeline) return [];
@@ -95,6 +106,11 @@ export default function GlobeViewer({
 
 	const polygons = allStepPolygons[currentStep] ?? [];
 	const step = timeline?.steps[currentStep];
+	const factionLabels = useMemo(
+		() =>
+			step?.factions.filter((f) => f.leader !== "-" && f.lat !== 0) ?? [],
+		[step],
+	);
 
 	// Camera
 	useEffect(() => {
@@ -133,6 +149,26 @@ export default function GlobeViewer({
 					</div>`;
 				}}
 				polygonsTransitionDuration={0}
+				htmlElementsData={factionLabels}
+				htmlLat={(d: object) => (d as FactionInfo).lat}
+				htmlLng={(d: object) => (d as FactionInfo).lng}
+				htmlAltitude={0.02}
+				htmlElement={(d: object) => {
+					const f = d as FactionInfo;
+					const el = document.createElement("div");
+					el.style.cssText =
+						"pointer-events:none;text-align:center;white-space:nowrap;";
+					el.innerHTML = `<span style="color:white;font-weight:600;font-size:13px;text-shadow:0 0 6px rgba(0,0,0,0.9),0 0 12px rgba(0,0,0,0.6)">${f.name}</span>`;
+					return el;
+				}}
+				htmlTransitionDuration={0}
+				onPolygonClick={(f: object) => {
+					const feat = f as GeoFeature;
+					const faction = step?.factions.find(
+						(fac) => fac.name === feat.properties.faction_name,
+					);
+					if (faction) setSelectedFaction(faction);
+				}}
 				atmosphereColor="#3a228a"
 				atmosphereAltitude={0.2}
 			/>
@@ -144,47 +180,35 @@ export default function GlobeViewer({
 				</div>
 			)}
 
-			{/* Faction cards */}
-			<AnimatePresence mode="wait">
-				{step && (
-					<motion.div
-						key={`factions-${currentStep}`}
-						initial={{ opacity: 0, x: -20 }}
-						animate={{ opacity: 1, x: 0 }}
-						exit={{ opacity: 0, x: -20 }}
-						transition={{ duration: 0.5 }}
-						className="absolute top-20 left-4 flex flex-col gap-2 max-h-[calc(100vh-16rem)] overflow-y-auto z-10"
-					>
-						{step.factions
-							.filter((f) => f.leader !== "-")
-							.map((faction) => (
-								<Card
-									key={faction.name}
-									size="sm"
-									className="bg-white/5 border-white/10 backdrop-blur-md w-64"
-								>
-									<CardContent className="flex items-start gap-2 p-0">
-										<span
-											className="mt-0.5 h-3 w-3 shrink-0 rounded-full"
-											style={{ backgroundColor: faction.color }}
-										/>
-										<div className="min-w-0">
-											<p className="text-label text-white truncate">
-												{faction.name}
-											</p>
-											<p className="text-caption text-white/50 truncate">
-												{faction.leader}
-											</p>
-											<p className="text-caption text-white/40 mt-0.5 line-clamp-2">
-												{faction.description}
-											</p>
-										</div>
-									</CardContent>
-								</Card>
-							))}
-					</motion.div>
+			{/* Faction detail dialog */}
+			<Dialog
+				open={!!selectedFaction}
+				onOpenChange={(open) => !open && setSelectedFaction(null)}
+			>
+				{selectedFaction && (
+					<DialogContent className="bg-black/90 border-white/10 text-white max-w-sm">
+						<DialogHeader>
+							<div className="flex items-center gap-2">
+								<span
+									className="h-3 w-3 rounded-full shrink-0"
+									style={{ backgroundColor: selectedFaction.color }}
+								/>
+								<DialogTitle className="text-white">
+									{selectedFaction.name}
+								</DialogTitle>
+							</div>
+							<DialogDescription className="text-white/50">
+								{selectedFaction.leader !== "-" && (
+									<span className="block text-white/70">
+										{selectedFaction.leader}
+									</span>
+								)}
+								{selectedFaction.description}
+							</DialogDescription>
+						</DialogHeader>
+					</DialogContent>
 				)}
-			</AnimatePresence>
+			</Dialog>
 
 			{/* Narration + timeline */}
 			{timeline && timeline.steps.length > 0 && (

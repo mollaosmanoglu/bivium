@@ -48,6 +48,8 @@ class FactionInfo(BaseModel):
     color: str
     leader: str
     description: str
+    lat: float
+    lng: float
 
 
 class MergedRegion(BaseModel):

@@ -2,6 +2,7 @@ import json
 import logging
 import time
 from collections.abc import AsyncGenerator
+from typing import Any
 
 from dotenv import load_dotenv
 
@@ -20,6 +21,7 @@ from fastapi.middleware.gzip import GZipMiddleware  # noqa: E402
 from fastapi.responses import StreamingResponse  # noqa: E402
 from openai.types.responses import ResponseTextDeltaEvent  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
+from shapely.geometry import shape  # noqa: E402
 
 from src.backend.agent import historian  # noqa: E402
 from src.backend.geo import merge_countries  # noqa: E402
@@ -69,20 +71,14 @@ def _merge_step(step: TimelineStep, faction_map: dict[str, FactionDef]) -> GeoSt
         fdef = faction_map.get(sf.faction_id)
         if not fdef:
             continue
-        faction_infos.append(
-            FactionInfo(
-                name=fdef.name,
-                color=fdef.color,
-                leader=sf.leader,
-                description=sf.description,
-            )
-        )
+        faction_geoms: list[Any] = []
         n = len(sf.sub_regions)
         for i, sub in enumerate(sf.sub_regions):
             shade_factor = 1.0 + (i * 0.15 / max(1, n - 1)) if n > 1 else 1.0
             color = _shade(fdef.color, shade_factor)
             geometry = merge_countries(sub.countries)
             if geometry is not None:
+                faction_geoms.append(shape(geometry))
                 regions.append(
                     MergedRegion(
                         faction_name=fdef.name,
@@ -91,6 +87,22 @@ def _merge_step(step: TimelineStep, faction_map: dict[str, FactionDef]) -> GeoSt
                         geometry=geometry,
                     )
                 )
+        # Compute centroid from first sub-region (homeland/core)
+        if faction_geoms:
+            centroid = faction_geoms[0].centroid
+            lat, lng = centroid.y, centroid.x
+        else:
+            lat, lng = 0.0, 0.0
+        faction_infos.append(
+            FactionInfo(
+                name=fdef.name,
+                color=fdef.color,
+                leader=sf.leader,
+                description=sf.description,
+                lat=lat,
+                lng=lng,
+            )
+        )
     return GeoStep(
         year=step.year,
         narration=step.narration,
