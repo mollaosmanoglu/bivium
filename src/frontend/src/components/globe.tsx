@@ -143,7 +143,7 @@ export default function GlobeViewer({
 				polygonsData={polygons}
 				polygonCapColor={(f: object) => (f as GeoFeature).properties.color}
 				polygonSideColor={() => "rgba(0, 0, 0, 0)"}
-				polygonAltitude={0.01}
+				polygonAltitude={0.03}
 				polygonStrokeColor={() => "rgba(255, 255, 255, 0.15)"}
 				polygonLabel={(f: object) => {
 					const feat = f as GeoFeature;
