@@ -14,9 +14,14 @@ class SubRegion(BaseModel):
     countries: list[str]
 
 
-class Faction(BaseModel):
+class FactionDef(BaseModel):
+    id: str
     name: str
     color: str
+
+
+class StepFaction(BaseModel):
+    faction_id: str
     leader: str
     description: str
     sub_regions: list[SubRegion]
@@ -26,11 +31,12 @@ class TimelineStep(BaseModel):
     year: int
     narration: str
     camera: CameraPosition
-    factions: list[Faction]
+    faction_states: list[StepFaction]
 
 
 class AlternateTimeline(BaseModel):
     title: str
+    factions: list[FactionDef]
     steps: list[TimelineStep]
 
 
