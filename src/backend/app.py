@@ -7,7 +7,13 @@ from dotenv import load_dotenv
 
 load_dotenv(override=True)
 
-from agents import InputGuardrailTripwireTriggered, Runner  # noqa: E402
+from agents import (  # noqa: E402
+    InputGuardrailTripwireTriggered,
+    Runner,
+    enable_verbose_stdout_logging,
+)
+
+enable_verbose_stdout_logging()  # noqa: E402
 from fastapi import FastAPI, HTTPException  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.middleware.gzip import GZipMiddleware  # noqa: E402
@@ -208,6 +214,7 @@ async def _stream_timeline(question: str) -> AsyncGenerator[str, None]:
     # Send any remaining steps from final output
     if result.final_output:
         raw: AlternateTimeline = result.final_output  # type: ignore[assignment]
+        logger.info("Final output JSON:\n%s", raw.model_dump_json(indent=2))
         if not title_sent:
             yield _sse("title", {"title": raw.title})
         for step in raw.steps[sent:]:

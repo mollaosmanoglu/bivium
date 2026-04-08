@@ -61,11 +61,10 @@ type GeoFeature = {
 		faction_name: string;
 		region_name: string;
 		color: string;
+		idx: number;
 	};
 	geometry: { type: string; coordinates: number[][][] | number[][][][] };
 };
-
-const STEP_DURATION = 4000;
 
 export default function GlobeViewer({
 	timeline,
@@ -75,19 +74,19 @@ export default function GlobeViewer({
 		GlobeMethods | undefined
 	>;
 	const [currentStep, setCurrentStep] = useState(0);
-	const playedRef = useRef(false);
 
 	const allStepPolygons = useMemo<GeoFeature[][]>(() => {
 		if (!timeline) return [];
 		return timeline.steps.map((step) =>
 			step.regions
 				.filter((r) => r.geometry)
-				.map((r) => ({
+				.map((r, i) => ({
 					type: "Feature" as const,
 					properties: {
 						faction_name: r.faction_name,
 						region_name: r.region_name,
 						color: r.color,
+						idx: i,
 					},
 					geometry: r.geometry,
 				})),
@@ -105,34 +104,13 @@ export default function GlobeViewer({
 		globeRef.current.pointOfView(s.camera, 1000);
 	}, [timeline, currentStep]);
 
-	// Reset on new question
-	useEffect(() => {
-		playedRef.current = false;
-	}, [timeline?.title]);
-
 	// Streaming: follow latest step
 	useEffect(() => {
 		if (!streaming || !timeline) return;
 		setCurrentStep(timeline.steps.length - 1);
 	}, [streaming, timeline?.steps.length]);
 
-	// Playback: auto-advance once after streaming ends
-	useEffect(() => {
-		if (streaming || !timeline || timeline.steps.length === 0) return;
-		if (playedRef.current) return;
-		playedRef.current = true;
-		setCurrentStep(0);
-		const interval = setInterval(() => {
-			setCurrentStep((prev) => {
-				if (prev >= timeline.steps.length - 1) {
-					clearInterval(interval);
-					return prev;
-				}
-				return prev + 1;
-			});
-		}, STEP_DURATION);
-		return () => clearInterval(interval);
-	}, [streaming, timeline]);
+	// After streaming ends, stay on the last step
 
 	return (
 		<div className="relative h-screen w-screen bg-black">
@@ -143,8 +121,10 @@ export default function GlobeViewer({
 				polygonsData={polygons}
 				polygonCapColor={(f: object) => (f as GeoFeature).properties.color}
 				polygonSideColor={() => "rgba(0, 0, 0, 0)"}
-				polygonAltitude={0.03}
-				polygonStrokeColor={() => "rgba(255, 255, 255, 0.15)"}
+				polygonAltitude={(f: object) =>
+					0.03 + (f as GeoFeature).properties.idx * 0.001
+				}
+				polygonStrokeColor={() => "rgba(0, 0, 0, 0)"}
 				polygonLabel={(f: object) => {
 					const feat = f as GeoFeature;
 					return `<div style="padding:4px 8px;background:rgba(0,0,0,0.7);border-radius:4px;color:white;text-align:center">
