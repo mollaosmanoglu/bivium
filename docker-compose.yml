@@ -1,0 +1,17 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: src/backend/Dockerfile
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+
+  frontend:
+    build:
+      context: src/frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
