@@ -12,4 +12,4 @@ COPY src/frontend/public/data/countries-110m.geojson src/frontend/public/data/co
 
 EXPOSE 8001
 
-CMD ["uv", "run", "uvicorn", "src.backend.app:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["uv", "run", "uvicorn", "src.backend.app:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]

@@ -5,7 +5,7 @@ from typing import Any
 from agents import (
     Agent,
     GuardrailFunctionOutput,
-    InputGuardrail,
+    InputGuardrail,  # noqa: F401  # pyright: ignore[reportUnusedImport]
     RunContextWrapper,
     Runner,
 )
@@ -113,5 +113,5 @@ historian: Agent[None] = Agent(
     model="gpt-5.4-mini",
     instructions=SYSTEM_PROMPT,
     output_type=AlternateTimeline,
-    input_guardrails=[InputGuardrail(guardrail_function=whatif_guardrail)],
+    # input_guardrails=[InputGuardrail(guardrail_function=whatif_guardrail)],
 )
