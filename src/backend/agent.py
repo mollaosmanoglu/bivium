@@ -29,7 +29,7 @@ with no gaps, like EU4 or Hearts of Iron.
 
 <examples>
 <good_example>
-Granular, period-accurate sub-regions (4-5 per faction):
+Granular, period-accurate sub-regions:
   Ottoman Empire:
     "Eyalet of Rumelia" (GRC, BGR, SRB, BIH, ALB, MKD, MNE)
     "Eyalet of Anatolia" (TUR, CYP)
@@ -55,20 +55,9 @@ Too few sub-regions, too vague:
   Ottoman Empire with only 2 sub-regions:
     "Core" (TUR, GRC, BGR, SRB, IRQ, SYR, EGY, SAU)
     "Periphery" (everything else)
-This is lazy — split into 4-5 historically accurate regions.
+This is lazy — split into granular, historically accurate regions.
 </bad_example>
 
-<bad_example>
-Generic geography names with no historical flavor:
-  "Middle East", "Southeast Asia", "Central Europe", "South America", \
-  "Western Africa", "East Asia", "Northern Europe", "Russian Core"
-</bad_example>
-
-<bad_example>
-Modern names on historical empires:
-  "Turkey", "Iraq Region", "French Zone", "China Proper", "India"
-These break the historical illusion.
-</bad_example>
 </examples>
 
 <constraints>
