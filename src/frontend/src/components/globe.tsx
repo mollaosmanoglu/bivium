@@ -112,13 +112,35 @@ export default function GlobeViewer({
 		[step],
 	);
 
-	// Camera
+	// Camera + auto-rotate on home screen
 	useEffect(() => {
-		if (!timeline) return;
-		const s = timeline.steps[currentStep];
-		if (!s || !globeRef.current) return;
-		globeRef.current.pointOfView(s.camera, 1000);
+		const globe = globeRef.current;
+		if (!globe) return;
+		const controls = globe.controls();
+		if (!timeline) {
+			controls.autoRotate = true;
+			controls.autoRotateSpeed = 0.4;
+			globe.pointOfView({ lat: 20, lng: 0, altitude: 2.0 }, 0);
+		} else {
+			controls.autoRotate = false;
+			const s = timeline.steps[currentStep];
+			if (s) globe.pointOfView(s.camera, 1000);
+		}
 	}, [timeline, currentStep]);
+
+	// Ensure auto-rotate starts after globe mounts
+	useEffect(() => {
+		if (timeline) return;
+		const id = setTimeout(() => {
+			const globe = globeRef.current;
+			if (!globe) return;
+			const controls = globe.controls();
+			controls.autoRotate = true;
+			controls.autoRotateSpeed = 0.4;
+			globe.pointOfView({ lat: 20, lng: 0, altitude: 2.0 }, 0);
+		}, 500);
+		return () => clearTimeout(id);
+	}, [timeline]);
 
 	// Streaming: follow latest step
 	useEffect(() => {
