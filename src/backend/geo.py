@@ -27,8 +27,19 @@ def _load() -> None:
     # Load country-level geometries (fallback)
     with open(_COUNTRIES_PATH) as f:
         data = json.load(f)
+    # Natural Earth uses -99 for France, Norway, etc. Map by name instead.
+    _name_to_iso: dict[str, str] = {
+        "France": "FRA",
+        "Norway": "NOR",
+        "N. Cyprus": "CYP",
+        "Kosovo": "XKX",
+        "Somaliland": "SOM",
+    }
     for feat in data["features"]:
         iso = feat["properties"]["ISO_A3"]
+        name = feat["properties"].get("NAME", "")
+        if iso == "-99":
+            iso = _name_to_iso.get(name, iso)
         _country_geometries[iso] = shape(feat["geometry"])
     logger.info("Loaded %d country geometries", len(_country_geometries))
 

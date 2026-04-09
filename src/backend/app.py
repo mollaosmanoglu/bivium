@@ -256,6 +256,25 @@ async def _stream_timeline(question: str) -> AsyncGenerator[str, None]:
         yield _sse("step", json.loads(geo_step.model_dump_json()))
         sent += 1
 
+    # Log final output summary
+    try:
+        raw = AlternateTimeline.model_validate_json(buf)
+        logger.info("Final output JSON:\n%s", raw.model_dump_json(indent=2))
+        for i, step in enumerate(raw.steps):
+            codes: set[str] = set()
+            for fs in step.faction_states:
+                for sr in fs.sub_regions:
+                    codes.update(sr.countries)
+            logger.info(
+                "Step %d [%d]: %d entities, %d countries",
+                i + 1,
+                step.year,
+                len(step.faction_states),
+                len(codes),
+            )
+    except Exception:  # noqa: BLE001
+        pass
+
     elapsed = time.monotonic() - start
     logger.info("Stream complete: %d steps in %.1fs", sent, elapsed)
     yield _sse("done", {})
