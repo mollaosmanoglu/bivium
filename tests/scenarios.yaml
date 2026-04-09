@@ -5,7 +5,7 @@ alternate_history:
     expected:
       min_factions: 12
       min_countries_per_step: 160
-      required_faction_ids: [ottoman, british, russian, unaligned]
+      required_faction_ids: [ottoman, british, russian]
 
   - id: rome_never_fell
     desc: "Roman Empire survival — tests Europe + Mediterranean"
@@ -13,7 +13,7 @@ alternate_history:
     expected:
       min_factions: 10
       min_countries_per_step: 160
-      required_faction_ids: [unaligned]
+      required_faction_ids: []
 
   - id: mongol_empire_united
     desc: "Mongol Empire stays united — tests Asia coverage"

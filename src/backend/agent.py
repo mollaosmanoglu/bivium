@@ -15,41 +15,70 @@ client = genai.Client()
 SYSTEM_PROMPT = """\
 <role>
 You are a historian and geopolitics expert. Given a "what if" question, \
-generate a cinematic alternate-history timeline as a full-world political \
-map on a 3D globe — like EU4 or Hearts of Iron.
+generate a cinematic alternate-history timeline as a fully colored 3D globe.
 </role>
 
 <goal>
-Paint the ENTIRE world in every step. No empty land. Every country belongs \
-to a faction. The globe must be richly colored with 12+ distinct factions.
+Generate a cinematic alternate-history timeline as a fully colored 3D globe.
 </goal>
 
 <examples>
 <good>
-"What if the Ottoman Empire never fell?" (1914):
-  13 factions: Ottoman, British, French, German, Russian, Austro-Hungarian, \
-  American, Japanese, Chinese, Italian, Persian, Latin American, Unaligned.
-  Each sub-region has max 15 countries with a historical name.
-  "Unaligned" is small — only Nordic neutrals, Iberia, and a few others.
+{
+  "factions": [
+    {"id": "ottoman", "name": "Ottoman Empire", "color": "#8e44ad"},
+    {"id": "british", "name": "British Empire", "color": "#2980b9"},
+    {"id": "french", "name": "French Empire", "color": "#2c3e80"},
+    {"id": "russian", "name": "Russian Empire", "color": "#c0392b"},
+    {"id": "german", "name": "German Empire", "color": "#505050"},
+    {"id": "austrian", "name": "Austro-Hungarian Empire", "color": "#d4a017"},
+    {"id": "american", "name": "United States", "color": "#1a5276"},
+    {"id": "japanese", "name": "Empire of Japan", "color": "#f39c12"},
+    {"id": "qing", "name": "Qing Dynasty", "color": "#8b4513"},
+    {"id": "italian", "name": "Kingdom of Italy", "color": "#27ae60"},
+    ... (more sovereign entities)
+    {"id": "brazil", "name": "Republic of Brazil", "color": "#229954"},
+    {"id": "argentina", "name": "Argentine Republic", "color": "#5dade2"},
+    {"id": "mexico", "name": "Republic of Mexico", "color": "#a04000"},
+    ... (more sovereign entities)
+    {"id": "sweden", "name": "Kingdom of Sweden", "color": "#2e86c1"},
+    {"id": "ethiopia", "name": "Ethiopian Empire", "color": "#196f3d"},
+    {"id": "siam", "name": "Kingdom of Siam", "color": "#f1c40f"},
+    {"id": "afghanistan", "name": "Emirate of Afghanistan", "color": "#784212"},
+    ... (30+ total sovereign entities)
+  ]
+}
+Each is a real sovereign entity — not a bloc or alliance.
+
+Escalation across steps:
+  Step 1 (1914): ~15 entities — age of empires, large powers dominate
+  Step 2 (1945): ~25 entities — empires weakening, new states emerging
+  Step 3 (1970): ~35 entities — decolonization, Africa/Asia gain independence
+  Step 4 (2000): ~45 entities — cold war ends, USSR/Yugoslavia fragment
+  Step 5 (2025): ~50+ entities — modern world, most countries sovereign
 </good>
 
 <bad>
-Only 4 factions: Ottoman, British, Russian, Unaligned.
-  "Unaligned" has 128 countries in one giant blob called "Global Independents".
-  This is lazy — France, Germany, Japan, USA, etc. all deserve their own faction.
-</bad>
-
-<bad>
-A sub-region with 60 countries called "African and Asian Independents".
-  Never put more than 20 countries in a single sub-region. Split by geography.
+{
+  "factions": [
+    {"id": "ottoman", "name": "Ottoman Empire", "color": "#8e44ad"},
+    {"id": "british", "name": "British Empire", "color": "#2980b9"},
+    {"id": "russian", "name": "Russian Empire", "color": "#c0392b"},
+    {"id": "latin_am", "name": "Latin American Republics", "color": "#e67e22"}
+  ]
+}
+Only 4 entries and same count in every step. "Latin American Republics" is a \
+fake bloc — Brazil, Argentina, Mexico are separate sovereign states.
 </bad>
 </examples>
 
 <constraints>
-- At least 12 factions per timeline. Unaligned should be the smallest faction.
-- Every country in exactly one faction per step. No duplicates, no gaps.
+- Every country in exactly one entry per step. No duplicates, no gaps.
+- Each entry is a sovereign entity (empire, kingdom, republic) — not a bloc or alliance.
+- When an entity evolves (Ottoman Empire -> Ottoman Republic), keep the SAME id. \
+Update the leader and description — don't create a new entity.
+- Each step should have MORE active entries than the previous.
 - Sub-regions: max 20 countries each. Core homeland listed FIRST.
-- Include a faction with id "unaligned" and color "#7f8c8d" for true neutrals.
 </constraints>
 """
 
@@ -59,10 +88,8 @@ def _build_instructions() -> str:
     return SYSTEM_PROMPT + (
         "\n\n<valid_iso_codes>\n"
         f"There are exactly {len(codes)} countries in the world map. "
-        "You MUST assign ALL of them to a faction in EVERY step. "
-        "If a country is not part of a major power, put it in the "
-        '"unaligned" faction. Zero countries may be left out — the globe '
-        "must be fully colored with no dark/empty areas.\n\n"
+        "You MUST assign ALL of them to a sovereign entity in EVERY step. "
+        "Zero countries may be left out — every piece of land belongs to someone.\n\n"
         f"{', '.join(codes)}\n"
         "</valid_iso_codes>"
     )
