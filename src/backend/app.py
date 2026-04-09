@@ -4,28 +4,16 @@ import time
 from collections.abc import AsyncGenerator
 from typing import Any
 
-from dotenv import load_dotenv
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+from shapely.geometry import shape
 
-load_dotenv(override=True)
-
-from agents import (  # noqa: E402
-    InputGuardrailTripwireTriggered,
-    Runner,
-    enable_verbose_stdout_logging,
-)
-
-enable_verbose_stdout_logging()  # noqa: E402
-from fastapi import FastAPI, HTTPException  # noqa: E402
-from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
-from fastapi.middleware.gzip import GZipMiddleware  # noqa: E402
-from fastapi.responses import StreamingResponse  # noqa: E402
-from openai.types.responses import ResponseTextDeltaEvent  # noqa: E402
-from pydantic import BaseModel  # noqa: E402
-from shapely.geometry import shape  # noqa: E402
-
-from src.backend.agent import historian  # noqa: E402
-from src.backend.geo import merge_countries  # noqa: E402
-from src.backend.models import (  # noqa: E402
+from src.backend.agent import generate_timeline, stream_timeline_chunks
+from src.backend.geo import merge_countries
+from src.backend.models import (
     AlternateTimeline,
     FactionDef,
     FactionInfo,
@@ -186,17 +174,10 @@ def _try_parse_steps(buf: str) -> list[TimelineStep]:
 
 
 @app.post("/api/timeline")
-async def create_timeline(req: TimelineRequest) -> GeoTimeline:
+async def create_timeline_endpoint(req: TimelineRequest) -> GeoTimeline:
     logger.info("Question: %s", req.question)
     start = time.monotonic()
-    try:
-        result = await Runner.run(historian, req.question)
-    except InputGuardrailTripwireTriggered as err:
-        logger.warning("Guardrail rejected: %s", req.question)
-        raise HTTPException(
-            status_code=400, detail="Not a valid what-if question."
-        ) from err
-    raw: AlternateTimeline = result.final_output  # type: ignore[assignment]
+    raw = await generate_timeline(req.question)
     elapsed = time.monotonic() - start
     logger.info("Generated %d steps in %.1fs: %s", len(raw.steps), elapsed, raw.title)
     geo = _merge_timeline(raw)
@@ -210,70 +191,70 @@ def _sse(event_type: str, data: object) -> str:
 
 async def _stream_timeline(question: str) -> AsyncGenerator[str, None]:
     start = time.monotonic()
-    result = Runner.run_streamed(historian, question)
     buf = ""
     sent = 0
     title_sent = False
     faction_defs: list[FactionDef] = []
     faction_map: dict[str, FactionDef] = {}
 
-    async for event in result.stream_events():
-        if event.type == "raw_response_event" and isinstance(
-            event.data, ResponseTextDeltaEvent
-        ):
-            buf += event.data.delta
+    async for chunk in stream_timeline_chunks(question):
+        buf += chunk
 
-            # Send title as soon as we can parse it
-            if not title_sent:
-                ti = buf.find('"title"')
-                if ti != -1:
-                    colon = buf.find(":", ti)
-                    if colon != -1:
-                        q1 = buf.find('"', colon + 1)
-                        if q1 != -1:
-                            q2 = q1 + 1
-                            while q2 < len(buf) and buf[q2] != '"':
-                                if buf[q2] == "\\":
-                                    q2 += 1
-                                q2 += 1
-                            if q2 < len(buf):
-                                title = buf[q1 + 1 : q2]
-                                yield _sse("title", {"title": title})
-                                title_sent = True
-                                logger.info("Streamed title: %s", title)
-
-            # Parse factions once (they come before steps in the JSON)
-            if not faction_defs:
-                faction_defs = _try_parse_factions(buf)
-                if faction_defs:
-                    faction_map = {f.id: f for f in faction_defs}
-                    logger.info("Parsed %d faction defs", len(faction_defs))
-
-            # Try to parse completed steps
-            if faction_map:
-                parsed = _try_parse_steps(buf)
-                for step in parsed[sent:]:
-                    geo_step = _merge_step(step, faction_map)
-                    yield _sse("step", json.loads(geo_step.model_dump_json()))
-                    sent += 1
-                    logger.info(
-                        "Streamed step %d [%d] (%.1fs)",
-                        sent,
-                        step.year,
-                        time.monotonic() - start,
-                    )
-
-    # Send any remaining steps from final output
-    if result.final_output:
-        raw: AlternateTimeline = result.final_output  # type: ignore[assignment]
-        logger.info("Final output JSON:\n%s", raw.model_dump_json(indent=2))
-        faction_map = {f.id: f for f in raw.factions}
+        # Send title as soon as we can parse it
         if not title_sent:
+            ti = buf.find('"title"')
+            if ti != -1:
+                colon = buf.find(":", ti)
+                if colon != -1:
+                    q1 = buf.find('"', colon + 1)
+                    if q1 != -1:
+                        q2 = q1 + 1
+                        while q2 < len(buf) and buf[q2] != '"':
+                            if buf[q2] == "\\":
+                                q2 += 1
+                            q2 += 1
+                        if q2 < len(buf):
+                            title = buf[q1 + 1 : q2]
+                            yield _sse("title", {"title": title})
+                            title_sent = True
+                            logger.info("Streamed title: %s", title)
+
+        # Parse factions once (they come before steps in the JSON)
+        if not faction_defs:
+            faction_defs = _try_parse_factions(buf)
+            if faction_defs:
+                faction_map = {f.id: f for f in faction_defs}
+                logger.info("Parsed %d faction defs", len(faction_defs))
+
+        # Try to parse completed steps
+        if faction_map:
+            parsed = _try_parse_steps(buf)
+            for step in parsed[sent:]:
+                geo_step = _merge_step(step, faction_map)
+                yield _sse("step", json.loads(geo_step.model_dump_json()))
+                sent += 1
+                logger.info(
+                    "Streamed step %d [%d] (%.1fs)",
+                    sent,
+                    step.year,
+                    time.monotonic() - start,
+                )
+
+    # Parse any remaining steps from the complete buffer
+    if not faction_defs:
+        faction_defs = _try_parse_factions(buf)
+        faction_map = {f.id: f for f in faction_defs}
+    if not title_sent:
+        try:
+            raw = AlternateTimeline.model_validate_json(buf)
             yield _sse("title", {"title": raw.title})
-        for step in raw.steps[sent:]:
-            geo_step = _merge_step(step, faction_map)
-            yield _sse("step", json.loads(geo_step.model_dump_json()))
-            sent += 1
+        except Exception:  # noqa: BLE001
+            pass
+    parsed = _try_parse_steps(buf)
+    for step in parsed[sent:]:
+        geo_step = _merge_step(step, faction_map)
+        yield _sse("step", json.loads(geo_step.model_dump_json()))
+        sent += 1
 
     elapsed = time.monotonic() - start
     logger.info("Stream complete: %d steps in %.1fs", sent, elapsed)

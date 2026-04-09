@@ -1,43 +1,69 @@
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class CameraPosition(BaseModel):
     lat: float
     lng: float
-    altitude: float
+    altitude: float = Field(
+        description="Globe radius units. 1.5 = regional, 2.5 = continental."
+    )
 
 
 class SubRegion(BaseModel):
-    name: str
-    countries: list[str]
+    name: str = Field(
+        description="Period-accurate historical name, e.g. 'Eyalet of Rumelia', not 'Balkans'."
+    )
+    countries: list[str] = Field(
+        description="ISO 3166-1 alpha-3 codes. Max 20 per sub-region — split large groups."
+    )
 
 
 class FactionDef(BaseModel):
-    id: str
-    name: str
-    color: str
+    id: str = Field(
+        description="Stable short slug, e.g. 'ottoman', 'british'. Same across all steps."
+    )
+    name: str = Field(description="Display name, e.g. 'Ottoman Empire'.")
+    color: str = Field(
+        description="EU4-style saturated hex color. Deep reds, blues, greens, purples. No pastels."
+    )
 
 
 class StepFaction(BaseModel):
-    faction_id: str
-    leader: str
-    description: str
-    sub_regions: list[SubRegion]
+    faction_id: str = Field(
+        description="References a FactionDef.id. Must match exactly."
+    )
+    leader: str = Field(
+        description="Historical leader name. Use '-' for unaligned faction."
+    )
+    description: str = Field(
+        description="One sentence describing this faction's state at this point in time."
+    )
+    sub_regions: list[SubRegion] = Field(
+        description="2-5 sub-regions. Core homeland FIRST. Each max 20 countries."
+    )
 
 
 class TimelineStep(BaseModel):
     year: int
-    narration: str
+    narration: str = Field(
+        description="Cinematic one-paragraph narration of this moment in the timeline."
+    )
     camera: CameraPosition
-    faction_states: list[StepFaction]
+    faction_states: list[StepFaction] = Field(
+        description="Every faction active in this step. Must cover ALL countries."
+    )
 
 
 class AlternateTimeline(BaseModel):
-    title: str
-    factions: list[FactionDef]
-    steps: list[TimelineStep]
+    title: str = Field(description="Cinematic title for the timeline.")
+    factions: list[FactionDef] = Field(
+        description="ALL factions across ALL steps. At least 12. Define once, reference by id."
+    )
+    steps: list[TimelineStep] = Field(
+        description="5-8 chronological steps covering the full alternate history."
+    )
 
 
 # --- Response models (with merged GeoJSON) ---

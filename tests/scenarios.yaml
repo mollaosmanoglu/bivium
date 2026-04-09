@@ -1,0 +1,37 @@
+alternate_history:
+  - id: ottoman_never_fell
+    desc: "Ottoman Empire survival — tests Middle East + Balkans coverage"
+    input: "What if the Ottoman Empire never fell?"
+    expected:
+      min_factions: 12
+      min_countries_per_step: 160
+      required_faction_ids: [ottoman, british, russian, unaligned]
+
+  - id: rome_never_fell
+    desc: "Roman Empire survival — tests Europe + Mediterranean"
+    input: "What if the Roman Empire never fell?"
+    expected:
+      min_factions: 10
+      min_countries_per_step: 160
+      required_faction_ids: [unaligned]
+
+  - id: mongol_empire_united
+    desc: "Mongol Empire stays united — tests Asia coverage"
+    input: "What if the Mongol Empire never split?"
+    expected:
+      min_factions: 10
+      min_countries_per_step: 160
+
+  - id: cold_war_nuclear
+    desc: "Nuclear war scenario — tests modern world coverage"
+    input: "What if the Cuban Missile Crisis led to nuclear war?"
+    expected:
+      min_factions: 8
+      min_countries_per_step: 160
+
+  - id: china_discovers_americas
+    desc: "Chinese discovery — tests global maritime coverage"
+    input: "What if China discovered the Americas before Columbus?"
+    expected:
+      min_factions: 10
+      min_countries_per_step: 160
