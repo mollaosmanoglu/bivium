@@ -1,6 +1,22 @@
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
+
+GovernmentType = Literal[
+    "monarchy",
+    "republic",
+    "empire",
+    "democracy",
+    "theocracy",
+    "military_junta",
+    "communist",
+    "fascist",
+    "tribal",
+    "federation",
+    "city_state",
+    "protectorate",
+    "unaligned",
+]
 
 
 class CameraPosition(BaseModel):
@@ -40,6 +56,25 @@ class StepFaction(BaseModel):
     description: str = Field(
         description="One sentence describing this faction's state at this point in time."
     )
+    government_type: GovernmentType = Field(
+        description=(
+            "Regime type for THIS step. Pick the closest enum value. "
+            "Use 'unaligned' for catch-all/non-state factions."
+        )
+    )
+    capital: str = Field(
+        description=(
+            "Capital city of this regime in this step's year. Use a real "
+            "historical city name (e.g. 'Constantinople' not 'Istanbul' for "
+            "the Ottoman Empire). Use '-' for unaligned factions."
+        )
+    )
+    backstory: str = Field(
+        description=(
+            "Two to three sentences explaining how this regime came to be in "
+            "this step. Ground in the timeline narration; do not contradict it."
+        )
+    )
     sub_regions: list[SubRegion] = Field(
         description="2-5 sub-regions. Core homeland FIRST. Each max 20 countries."
     )
@@ -73,6 +108,9 @@ class FactionInfo(BaseModel):
     name: str
     color: str
     leader: str
+    government_type: GovernmentType = "unaligned"
+    capital: str = ""
+    backstory: str = ""
     description: str
     lat: float
     lng: float

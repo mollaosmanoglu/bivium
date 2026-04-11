@@ -54,10 +54,15 @@ async def task(input: dict[str, Any]) -> dict[str, Any]:
     countries_per_step: list[int] = []
     duplicates_per_step: list[int] = []
     max_subregion_size: int = 0
+    total_step_factions = 0
+    incomplete_enrichments = 0
 
     for step in timeline.steps:
         codes: list[str] = []
         for fs in step.faction_states:
+            total_step_factions += 1
+            if not fs.government_type or not fs.capital or not fs.backstory:
+                incomplete_enrichments += 1
             for sr in fs.sub_regions:
                 max_subregion_size = max(max_subregion_size, len(sr.countries))
                 codes.extend(sr.countries)
@@ -72,6 +77,8 @@ async def task(input: dict[str, Any]) -> dict[str, Any]:
         "min_countries": min(countries_per_step) if countries_per_step else 0,
         "duplicates_per_step": duplicates_per_step,
         "max_subregion_size": max_subregion_size,
+        "total_step_factions": total_step_factions,
+        "incomplete_enrichments": incomplete_enrichments,
         "title": timeline.title,
     }
 
@@ -166,6 +173,25 @@ def required_factions(output: Any, expected: Any) -> dict[str, Any]:
     }
 
 
+def enrichment_completeness(output: Any, expected: Any) -> dict[str, Any]:
+    """Check every step-faction has government_type, capital, and backstory."""
+    total = output.get("total_step_factions", 0)
+    incomplete = output.get("incomplete_enrichments", 0)
+    if total == 0:
+        return {"score": 1.0, "label": "PASS", "explanation": "no factions"}
+    rate = (total - incomplete) / total
+    threshold = expected.get("min_enrichment_completeness", 1.0)
+    label = "PASS" if rate >= threshold else "FAIL"
+    return {
+        "score": rate,
+        "label": label,
+        "explanation": (
+            f"{total - incomplete}/{total} fully enriched "
+            f"({rate:.0%}, need {threshold:.0%})"
+        ),
+    }
+
+
 # ── Phoenix setup ───────────────────────────────────────────────────
 
 
@@ -243,6 +269,7 @@ async def main() -> None:
             "no_duplicate_countries": no_duplicate_countries,
             "no_lazy_blobs": no_lazy_blobs,
             "required_factions": required_factions,
+            "enrichment_completeness": enrichment_completeness,
         },  # type: ignore[arg-type]
         concurrency=3,
         timeout=180,

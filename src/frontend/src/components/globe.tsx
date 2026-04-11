@@ -1,5 +1,22 @@
 "use client";
 
+import {
+	Building,
+	Building2,
+	Church,
+	Circle,
+	Crown,
+	Flame,
+	Globe as GlobeIcon,
+	type LucideIcon,
+	MapPin,
+	Network,
+	Shield,
+	Star,
+	Swords,
+	Tent,
+	Vote,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import dynamic from "next/dynamic";
 import {
@@ -10,6 +27,7 @@ import {
 	useState,
 } from "react";
 import type { GlobeMethods } from "react-globe.gl";
+import { Badge } from "@/components/ui/badge";
 import {
 	Sheet,
 	SheetContent,
@@ -17,6 +35,53 @@ import {
 	SheetTitle,
 	SheetDescription,
 } from "@/components/ui/sheet";
+
+type GovernmentType =
+	| "monarchy"
+	| "republic"
+	| "empire"
+	| "democracy"
+	| "theocracy"
+	| "military_junta"
+	| "communist"
+	| "fascist"
+	| "tribal"
+	| "federation"
+	| "city_state"
+	| "protectorate"
+	| "unaligned";
+
+const GOVERNMENT_ICONS: Record<GovernmentType, LucideIcon> = {
+	monarchy: Crown,
+	republic: Building2,
+	empire: GlobeIcon,
+	democracy: Vote,
+	theocracy: Church,
+	military_junta: Swords,
+	communist: Star,
+	fascist: Flame,
+	tribal: Tent,
+	federation: Network,
+	city_state: Building,
+	protectorate: Shield,
+	unaligned: Circle,
+};
+
+const GOVERNMENT_LABELS: Record<GovernmentType, string> = {
+	monarchy: "Monarchy",
+	republic: "Republic",
+	empire: "Empire",
+	democracy: "Democracy",
+	theocracy: "Theocracy",
+	military_junta: "Military Junta",
+	communist: "Communist",
+	fascist: "Fascist",
+	tribal: "Tribal",
+	federation: "Federation",
+	city_state: "City-State",
+	protectorate: "Protectorate",
+	unaligned: "Unaligned",
+};
 
 const Globe = dynamic(() => import("react-globe.gl"), { ssr: false });
 
@@ -30,6 +95,9 @@ interface FactionInfo {
 	name: string;
 	color: string;
 	leader: string;
+	government_type: GovernmentType;
+	capital: string;
+	backstory: string;
 	description: string;
 	lat: number;
 	lng: number;
@@ -211,27 +279,56 @@ export default function GlobeViewer({
 					side="left"
 					className="bg-black/90 border-white/10 text-white w-80"
 				>
-					{selectedFaction && (
-						<SheetHeader>
-							<div className="flex items-center gap-2">
-								<span
-									className="h-3 w-3 rounded-full shrink-0"
-									style={{ backgroundColor: selectedFaction.color }}
-								/>
-								<SheetTitle className="text-white">
-									{selectedFaction.name}
-								</SheetTitle>
-							</div>
-							<SheetDescription className="text-white/50">
-								{selectedFaction.leader !== "-" && (
-									<span className="block text-white/70 mb-1">
-										{selectedFaction.leader}
-									</span>
-								)}
-								{selectedFaction.description}
-							</SheetDescription>
-						</SheetHeader>
-					)}
+					{selectedFaction &&
+						(() => {
+							const GovIcon =
+								GOVERNMENT_ICONS[selectedFaction.government_type] ?? Circle;
+							const govLabel =
+								GOVERNMENT_LABELS[selectedFaction.government_type] ??
+								"Unaligned";
+							return (
+								<SheetHeader>
+									<div className="flex items-center gap-2">
+										<span
+											className="h-3 w-3 rounded-full shrink-0"
+											style={{ backgroundColor: selectedFaction.color }}
+										/>
+										<SheetTitle className="text-white">
+											{selectedFaction.name}
+										</SheetTitle>
+									</div>
+									<div className="flex items-center gap-2 mt-1">
+										<Badge
+											variant="secondary"
+											className="bg-white/10 text-white/80 border-white/10 gap-1"
+										>
+											<GovIcon className="h-3 w-3" />
+											{govLabel}
+										</Badge>
+										{selectedFaction.capital &&
+											selectedFaction.capital !== "-" && (
+												<span className="flex items-center gap-1 text-xs text-white/60">
+													<MapPin className="h-3 w-3" />
+													{selectedFaction.capital}
+												</span>
+											)}
+									</div>
+									<SheetDescription className="text-white/50">
+										{selectedFaction.leader !== "-" && (
+											<span className="block text-white/70 mb-1">
+												{selectedFaction.leader}
+											</span>
+										)}
+										{selectedFaction.description}
+									</SheetDescription>
+									{selectedFaction.backstory && (
+										<p className="border-l-2 border-white/10 pl-3 mt-3 text-sm text-white/60 leading-relaxed">
+											{selectedFaction.backstory}
+										</p>
+									)}
+								</SheetHeader>
+							);
+						})()}
 				</SheetContent>
 			</Sheet>
 

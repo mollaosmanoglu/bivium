@@ -79,6 +79,12 @@ fake bloc — Brazil, Argentina, Mexico are separate sovereign states.
 Update the leader and description — don't create a new entity.
 - Each step should have MORE active entries than the previous.
 - Sub-regions: max 20 countries each. Core homeland listed FIRST.
+- For each faction in each step also fill: government_type (one of the enum \
+values: monarchy, republic, empire, democracy, theocracy, military_junta, \
+communist, fascist, tribal, federation, city_state, protectorate, unaligned), \
+capital city (period-correct historical name, e.g. 'Constantinople' not \
+'Istanbul' for Ottoman Empire), and a 2-3 sentence backstory grounded in \
+the timeline narration.
 </constraints>
 """
 
