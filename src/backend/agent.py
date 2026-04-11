@@ -83,8 +83,8 @@ Update the leader and description — don't create a new entity.
 values: monarchy, republic, empire, democracy, theocracy, military_junta, \
 communist, fascist, tribal, federation, city_state, protectorate, unaligned), \
 capital city (period-correct historical name, e.g. 'Constantinople' not \
-'Istanbul' for Ottoman Empire), and a 2-3 sentence backstory grounded in \
-the timeline narration.
+'Istanbul' for Ottoman Empire), and a backstory grounded in the timeline \
+narration.
 </constraints>
 """
 
@@ -106,6 +106,7 @@ def _get_config() -> types.GenerateContentConfig:
         system_instruction=_build_instructions(),
         response_mime_type="application/json",
         response_schema=AlternateTimeline,
+        max_output_tokens=32768,
     )
 
 

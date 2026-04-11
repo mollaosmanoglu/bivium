@@ -54,7 +54,11 @@ class StepFaction(BaseModel):
         description="Historical leader name. Use '-' for unaligned faction."
     )
     description: str = Field(
-        description="One sentence describing this faction's state at this point in time."
+        description=(
+            "A vivid description of this faction's state at this point in time. "
+            "Cover its political mood, recent events, and standing in the world. "
+            "Write richly; do not be terse."
+        )
     )
     government_type: GovernmentType = Field(
         description=(
@@ -71,8 +75,10 @@ class StepFaction(BaseModel):
     )
     backstory: str = Field(
         description=(
-            "Two to three sentences explaining how this regime came to be in "
-            "this step. Ground in the timeline narration; do not contradict it."
+            "A rich, substantive backstory explaining how this regime came to "
+            "be in this step: the events that shaped it, the people, the "
+            "decisions. Ground in the timeline narration; do not contradict it. "
+            "Write richly; do not be terse."
         )
     )
     sub_regions: list[SubRegion] = Field(
@@ -83,7 +89,10 @@ class StepFaction(BaseModel):
 class TimelineStep(BaseModel):
     year: int
     narration: str = Field(
-        description="Cinematic one-paragraph narration of this moment in the timeline."
+        description=(
+            "Cinematic narration of this moment in the timeline. Evocative, "
+            "specific, grounded in named people and events. Write richly."
+        )
     )
     camera: CameraPosition
     faction_states: list[StepFaction] = Field(
