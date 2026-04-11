@@ -90,8 +90,15 @@ class TimelineStep(BaseModel):
     year: int
     narration: str = Field(
         description=(
-            "Cinematic narration of this moment in the timeline. Evocative, "
-            "specific, grounded in named people and events. Write richly."
+            "1-2 punchy headline sentences for this moment — the arc in a "
+            "glance. Leave the detailed beats for key_events."
+        )
+    )
+    key_events: list[str] = Field(
+        description=(
+            "3-5 short bullet points — one sentence each — summarizing the "
+            "major events of this step. Factual, specific, and grounded in "
+            "the alt-history."
         )
     )
     camera: CameraPosition
@@ -135,6 +142,7 @@ class MergedRegion(BaseModel):
 class GeoStep(BaseModel):
     year: int
     narration: str
+    key_events: list[str] = Field(default_factory=list)
     camera: CameraPosition
     factions: list[FactionInfo]
     regions: list[MergedRegion]

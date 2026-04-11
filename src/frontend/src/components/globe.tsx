@@ -116,6 +116,7 @@ interface MergedRegion {
 interface TimelineStep {
 	year: number;
 	narration: string;
+	key_events: string[];
 	camera: CameraPosition;
 	factions: FactionInfo[];
 	regions: MergedRegion[];
@@ -233,9 +234,21 @@ export default function GlobeViewer({
 				polygonStrokeColor={() => "rgba(0, 0, 0, 0)"}
 				polygonLabel={(f: object) => {
 					const feat = f as GeoFeature;
-					return `<div style="padding:4px 8px;background:rgba(0,0,0,0.7);border-radius:4px;color:white;text-align:center">
-						<b>${feat.properties.faction_name}</b><br/>
-						<span style="color:${feat.properties.color}">${feat.properties.region_name}</span>
+					const faction = step?.factions.find(
+						(fac) => fac.name === feat.properties.faction_name,
+					);
+					const govLine = faction
+						? `<div style="color:rgba(255,255,255,0.5);font-size:11px;text-transform:capitalize;margin-top:2px">${faction.government_type.replace("_", " ")}</div>`
+						: "";
+					const leaderLine =
+						faction && faction.leader !== "-"
+							? `<div style="color:rgba(255,255,255,0.8);font-size:12px;margin-top:2px">${faction.leader}</div>`
+							: "";
+					return `<div style="padding:6px 10px;background:rgba(0,0,0,0.8);border-radius:4px;color:white;text-align:center;min-width:120px">
+						<b>${feat.properties.faction_name}</b>
+						${govLine}
+						${leaderLine}
+						<div style="color:${feat.properties.color};font-size:11px;margin-top:4px">${feat.properties.region_name}</div>
 					</div>`;
 				}}
 				polygonsTransitionDuration={0}
@@ -337,16 +350,25 @@ export default function GlobeViewer({
 				<div className="absolute bottom-0 left-0 right-0 z-10 pb-8 pointer-events-none">
 					<AnimatePresence mode="wait">
 						{step && (
-							<motion.p
+							<motion.div
 								key={`narration-${currentStep}`}
 								initial={{ opacity: 0, y: 10 }}
 								animate={{ opacity: 1, y: 0 }}
 								exit={{ opacity: 0, y: -10 }}
 								transition={{ duration: 0.4 }}
-								className="text-body text-white text-center max-w-lg mx-auto mb-6 px-4"
+								className="max-w-lg mx-auto mb-6 px-4"
 							>
-								{step.narration}
-							</motion.p>
+								<p className="text-body text-white text-center">
+									{step.narration}
+								</p>
+								{step.key_events && step.key_events.length > 0 && (
+									<ul className="text-caption text-white/60 text-center mt-3 space-y-1">
+										{step.key_events.map((event) => (
+											<li key={event}>• {event}</li>
+										))}
+									</ul>
+								)}
+							</motion.div>
 						)}
 					</AnimatePresence>
 

@@ -97,6 +97,7 @@ def _merge_step(step: TimelineStep, faction_map: dict[str, FactionDef]) -> GeoSt
     return GeoStep(
         year=step.year,
         narration=step.narration,
+        key_events=step.key_events,
         camera=step.camera,
         factions=faction_infos,
         regions=regions,

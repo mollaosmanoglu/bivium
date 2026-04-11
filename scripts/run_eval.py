@@ -56,6 +56,8 @@ async def task(input: dict[str, Any]) -> dict[str, Any]:
     max_subregion_size: int = 0
     total_step_factions = 0
     incomplete_enrichments = 0
+    steps_under_key_events_floor = 0
+    steps_over_key_events_cap = 0
 
     for step in timeline.steps:
         codes: list[str] = []
@@ -68,6 +70,11 @@ async def task(input: dict[str, Any]) -> dict[str, Any]:
                 codes.extend(sr.countries)
         countries_per_step.append(len(set(codes)))
         duplicates_per_step.append(len(codes) - len(set(codes)))
+        n_events = len(step.key_events)
+        if n_events < 3:
+            steps_under_key_events_floor += 1
+        elif n_events > 5:
+            steps_over_key_events_cap += 1
 
     return {
         "faction_count": len(timeline.factions),
@@ -79,6 +86,8 @@ async def task(input: dict[str, Any]) -> dict[str, Any]:
         "max_subregion_size": max_subregion_size,
         "total_step_factions": total_step_factions,
         "incomplete_enrichments": incomplete_enrichments,
+        "steps_under_key_events_floor": steps_under_key_events_floor,
+        "steps_over_key_events_cap": steps_over_key_events_cap,
         "title": timeline.title,
     }
 
@@ -170,6 +179,23 @@ def required_factions(output: Any, expected: Any) -> dict[str, Any]:
         "score": 0.0,
         "label": "FAIL",
         "explanation": f"missing factions: {', '.join(sorted(missing))}",
+    }
+
+
+def key_events_completeness(output: Any, expected: Any) -> dict[str, Any]:
+    """Check every step has 3-5 key_events bullets."""
+    under = output.get("steps_under_key_events_floor", 0)
+    over = output.get("steps_over_key_events_cap", 0)
+    if under == 0 and over == 0:
+        return {
+            "score": 1.0,
+            "label": "PASS",
+            "explanation": "all steps have 3-5 key events",
+        }
+    return {
+        "score": 0.0,
+        "label": "FAIL",
+        "explanation": f"{under} steps <3 events, {over} steps >5 events",
     }
 
 
@@ -270,6 +296,7 @@ async def main() -> None:
             "no_lazy_blobs": no_lazy_blobs,
             "required_factions": required_factions,
             "enrichment_completeness": enrichment_completeness,
+            "key_events_completeness": key_events_completeness,
         },  # type: ignore[arg-type]
         concurrency=3,
         timeout=180,

@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Share } from "lucide-react";
+import { Plus, Share, Shuffle } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import GlobeViewer, { type AlternateTimeline } from "@/components/globe";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,24 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+
+const SCENARIOS = [
+	"What if the Roman Empire never fell?",
+	"What if the Mongols took Vienna?",
+	"What if the Ottoman Empire won WWI?",
+	"What if China discovered the Americas before Columbus?",
+	"What if the USSR survived past 1991?",
+	"What if Napoleon won at Waterloo?",
+	"What if the Library of Alexandria never burned?",
+	"What if the Byzantines held Constantinople in 1453?",
+	"What if the Aztecs defeated Cortés?",
+	"What if the American Revolution failed?",
+	"What if the Soviets landed on the Moon first?",
+	"What if Alexander the Great lived another 20 years?",
+	"What if the Black Death never happened?",
+	"What if the Cuban Missile Crisis led to nuclear war?",
+	"What if the Third Reich captured Moscow?",
+] as const;
 
 export default function Home() {
 	const [question, setQuestion] = useState("");
@@ -131,6 +149,21 @@ export default function Home() {
 										className="bg-white/10 border-white/20 text-white placeholder:text-white/40"
 										disabled={loading}
 									/>
+									<Button
+										type="button"
+										variant="ghost"
+										size="icon"
+										disabled={loading}
+										onClick={() =>
+											setQuestion(
+												SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)],
+											)
+										}
+										className="text-white/60 hover:text-white hover:bg-white/10 shrink-0"
+										aria-label="Surprise me with a random scenario"
+									>
+										<Shuffle className="h-4 w-4" />
+									</Button>
 									<Button type="submit" disabled={loading} variant="secondary">
 										{loading ? <Spinner /> : "Go"}
 									</Button>
