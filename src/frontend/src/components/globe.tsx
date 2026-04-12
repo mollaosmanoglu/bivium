@@ -508,7 +508,7 @@ export default function GlobeViewer({
 												<Button
 													variant="ghost"
 													size="sm"
-													className="mt-4 text-white/60 hover:text-white"
+													className="mt-4 text-white/60 hover:text-white/90 hover:bg-white/5"
 													onClick={() => setChatMode(true)}
 												>
 													<MessageCircle className="h-4 w-4 mr-1" />
