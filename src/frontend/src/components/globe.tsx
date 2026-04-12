@@ -8,7 +8,6 @@ import {
 	Crown,
 	Flame,
 	Globe as GlobeIcon,
-	List,
 	type LucideIcon,
 	MapPin,
 	MessageCircle,
@@ -34,12 +33,6 @@ import {
 import type { GlobeMethods } from "react-globe.gl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -49,14 +42,6 @@ import {
 	SheetTitle,
 	SheetDescription,
 } from "@/components/ui/sheet";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 
 type GovernmentType =
@@ -177,7 +162,6 @@ export default function GlobeViewer({
 	const [selectedFaction, setSelectedFaction] = useState<FactionInfo | null>(
 		null,
 	);
-	const [ledgerOpen, setLedgerOpen] = useState(false);
 	const [eventsOpen, setEventsOpen] = useState(false);
 	const [chatMode, setChatMode] = useState(false);
 	const [chatHistory, setChatHistory] = useState<
@@ -529,85 +513,6 @@ export default function GlobeViewer({
 						))}
 				</SheetContent>
 			</Sheet>
-
-			{/* Faction ledger dialog */}
-			<Dialog open={ledgerOpen} onOpenChange={setLedgerOpen}>
-				<DialogContent className="bg-black/95 border-white/10 text-white max-w-lg max-h-[70vh]">
-					<DialogHeader>
-						<DialogTitle>Factions — {step?.year}</DialogTitle>
-					</DialogHeader>
-					<ScrollArea className="h-[50vh]">
-						<Table>
-							<TableHeader>
-								<TableRow className="border-white/10">
-									<TableHead className="text-white/50">
-										Faction
-									</TableHead>
-									<TableHead className="text-white/50">
-										Government
-									</TableHead>
-									<TableHead className="text-white/50">
-										Leader
-									</TableHead>
-									<TableHead className="text-white/50">
-										Capital
-									</TableHead>
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{step?.factions
-									.filter((f) => f.leader !== "-")
-									.map((f) => (
-										<TableRow
-											key={f.name}
-											className="border-white/10 cursor-pointer hover:bg-white/5"
-											onClick={() => {
-												setSelectedFaction(f);
-												setLedgerOpen(false);
-											}}
-										>
-											<TableCell>
-												<div className="flex items-center gap-2">
-													<span
-														className="h-2 w-2 rounded-full shrink-0"
-														style={{
-															backgroundColor: f.color,
-														}}
-													/>
-													{f.name}
-												</div>
-											</TableCell>
-											<TableCell className="text-white/60 capitalize">
-												{f.government_type.replace("_", " ")}
-											</TableCell>
-											<TableCell className="text-white/60">
-												{f.leader}
-											</TableCell>
-											<TableCell className="text-white/60">
-												{f.capital}
-											</TableCell>
-										</TableRow>
-									))}
-							</TableBody>
-						</Table>
-					</ScrollArea>
-				</DialogContent>
-			</Dialog>
-
-			{/* Ledger button */}
-			{timeline && timeline.steps.length > 0 && (
-				<div className="absolute bottom-0 left-4 z-10 pb-8 pointer-events-auto">
-					<Button
-						variant="ghost"
-						size="sm"
-						className="text-white/50 hover:text-white"
-						onClick={() => setLedgerOpen(true)}
-					>
-						<List className="h-4 w-4 mr-1" />
-						Factions
-					</Button>
-				</div>
-			)}
 
 			{/* Narration + timeline */}
 			{timeline && timeline.steps.length > 0 && (
