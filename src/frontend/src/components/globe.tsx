@@ -362,9 +362,21 @@ export default function GlobeViewer({
 									{step.narration}
 								</p>
 								{step.key_events && step.key_events.length > 0 && (
-									<ul className="text-caption text-white/60 text-center mt-3 space-y-1">
-										{step.key_events.map((event) => (
-											<li key={event}>• {event}</li>
+									<ul className="text-caption text-white/60 text-center mt-3 space-y-1.5">
+										{step.key_events.map((event, i) => (
+											<motion.li
+												key={`${currentStep}-${event}`}
+												initial={{ opacity: 0, height: 0, y: 20 }}
+												animate={{ opacity: 1, height: "auto", y: 0 }}
+												transition={{
+													duration: 1.2,
+													delay: 1 + i * 3,
+													ease: "easeOut",
+												}}
+												style={{ overflow: "hidden" }}
+											>
+												• {event}
+											</motion.li>
 										))}
 									</ul>
 								)}

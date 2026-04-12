@@ -1,7 +1,7 @@
 "use client";
 
-import { Plus, Share, Shuffle } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { Check, Plus, Share, Shuffle } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import GlobeViewer, { type AlternateTimeline } from "@/components/globe";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,14 @@ export default function Home() {
 	const [streaming, setStreaming] = useState(false);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [copied, setCopied] = useState(false);
 	const abortRef = useRef<AbortController | null>(null);
+
+	useEffect(() => {
+		const params = new URLSearchParams(window.location.search);
+		const q = params.get("q");
+		if (q) setQuestion(q);
+	}, []);
 
 	const handleSubmit = useCallback(
 		async (e: React.FormEvent) => {
@@ -185,9 +192,15 @@ export default function Home() {
 							const url = new URL(window.location.href);
 							url.searchParams.set("q", question);
 							navigator.clipboard.writeText(url.toString());
+							setCopied(true);
+							setTimeout(() => setCopied(false), 1500);
 						}}
 					>
-						<Share className="h-4 w-4" />
+						{copied ? (
+							<Check className="h-4 w-4" />
+						) : (
+							<Share className="h-4 w-4" />
+						)}
 					</Button>
 					<Button
 						size="icon"
