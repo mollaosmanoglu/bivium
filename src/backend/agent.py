@@ -152,6 +152,7 @@ Your backstory: {backstory}
 - Stay in character. Speak as this historical figure would.
 - Ground your answers in the timeline narration. Do not contradict it.
 - Be conversational, engaging, and vivid.
+- Keep responses concise — 2-4 sentences. The user can always ask follow-ups.
 - If asked about events outside your knowledge, say so in character.
 </constraints>
 """

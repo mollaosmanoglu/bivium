@@ -178,12 +178,14 @@ export default function GlobeViewer({
 		null,
 	);
 	const [ledgerOpen, setLedgerOpen] = useState(false);
+	const [eventsOpen, setEventsOpen] = useState(false);
 	const [chatMode, setChatMode] = useState(false);
 	const [chatHistory, setChatHistory] = useState<
 		{ role: string; content: string }[]
 	>([]);
 	const [chatInput, setChatInput] = useState("");
 	const [chatStreaming, setChatStreaming] = useState(false);
+	const chatEndRef = useRef<HTMLDivElement>(null);
 
 	// Reset chat when faction changes
 	useEffect(() => {
@@ -191,6 +193,11 @@ export default function GlobeViewer({
 		setChatHistory([]);
 		setChatInput("");
 	}, [selectedFaction]);
+
+	// Auto-scroll to bottom when chat updates
+	useEffect(() => {
+		chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+	}, [chatHistory]);
 
 	const handleChatSubmit = useCallback(
 		async (e: FormEvent) => {
@@ -320,6 +327,11 @@ export default function GlobeViewer({
 		setCurrentStep(timeline.steps.length - 1);
 	}, [streaming, timeline?.steps.length]);
 
+	// Collapse key events when step changes
+	useEffect(() => {
+		setEventsOpen(false);
+	}, [currentStep]);
+
 	// After streaming ends, stay on the last step
 
 	return (
@@ -397,21 +409,11 @@ export default function GlobeViewer({
 				>
 					{selectedFaction &&
 						(chatMode ? (
-							<div className="flex flex-col h-full">
-								<div className="flex items-center justify-between mb-3">
-									<SheetTitle className="text-white text-sm">
-										{selectedFaction.leader}
-									</SheetTitle>
-									<Button
-										variant="ghost"
-										size="sm"
-										className="text-white/60 hover:text-white"
-										onClick={() => setChatMode(false)}
-									>
-										Back
-									</Button>
-								</div>
-								<ScrollArea className="flex-1 pr-2">
+							<div className="flex flex-col h-[calc(100vh-2rem)] pt-8 px-4">
+								<SheetTitle className="text-white text-sm mb-3 shrink-0">
+									{selectedFaction.leader}
+								</SheetTitle>
+								<ScrollArea className="flex-1 min-h-0 pr-2">
 									{chatHistory.map((msg, i) => (
 										<div
 											key={i}
@@ -428,18 +430,24 @@ export default function GlobeViewer({
 											</p>
 										</div>
 									))}
+									<div ref={chatEndRef} />
 								</ScrollArea>
-								<Separator className="my-2 bg-white/10" />
+								<Separator className="my-2 bg-white/10 shrink-0" />
 								<form
 									onSubmit={handleChatSubmit}
-									className="flex gap-2"
+									className="flex gap-2 shrink-0 pb-4"
 								>
 									<Textarea
 										value={chatInput}
 										onChange={(e) => setChatInput(e.target.value)}
+										onKeyDown={(e) => {
+											if (e.key === "Enter" && !e.shiftKey) {
+												e.preventDefault();
+												handleChatSubmit(e);
+											}
+										}}
 										placeholder="Ask a question..."
 										className="bg-white/5 border-white/10 text-white text-sm min-h-[40px] max-h-[80px] resize-none"
-										disabled={chatStreaming}
 									/>
 									<Button
 										type="submit"
@@ -501,17 +509,20 @@ export default function GlobeViewer({
 												{selectedFaction.backstory}
 											</p>
 										)}
-										{selectedFaction.leader !== "-" && (
-											<Button
-												variant="ghost"
-												size="sm"
-												className="mt-4 text-white/60 hover:text-white"
-												onClick={() => setChatMode(true)}
-											>
-												<MessageCircle className="h-4 w-4 mr-1" />
-												Talk to {selectedFaction.leader}
-											</Button>
-										)}
+										{selectedFaction.leader !== "-" &&
+											!streaming &&
+											timeline &&
+											currentStep === timeline.steps.length - 1 && (
+												<Button
+													variant="ghost"
+													size="sm"
+													className="mt-4 text-white/60 hover:text-white"
+													onClick={() => setChatMode(true)}
+												>
+													<MessageCircle className="h-4 w-4 mr-1" />
+													Talk to {selectedFaction.leader}
+												</Button>
+											)}
 									</SheetHeader>
 								);
 							})()
@@ -615,23 +626,30 @@ export default function GlobeViewer({
 									{step.narration}
 								</p>
 								{step.key_events && step.key_events.length > 0 && (
-									<ul className="text-caption text-white/60 text-center mt-3 space-y-1.5">
-										{step.key_events.map((event, i) => (
-											<motion.li
-												key={`${currentStep}-${event}`}
-												initial={{ opacity: 0, height: 0, y: 20 }}
-												animate={{ opacity: 1, height: "auto", y: 0 }}
-												transition={{
-													duration: 1.2,
-													delay: 1 + i * 3,
-													ease: "easeOut",
-												}}
-												style={{ overflow: "hidden" }}
-											>
-												• {event}
-											</motion.li>
-										))}
-									</ul>
+									<div className="text-center mt-2 pointer-events-auto">
+										<button
+											type="button"
+											onClick={() => setEventsOpen((o) => !o)}
+											className="text-caption text-white/40 hover:text-white/70 transition-colors"
+										>
+											{eventsOpen ? "Hide events ▴" : "Key events ▾"}
+										</button>
+										<AnimatePresence>
+											{eventsOpen && (
+												<motion.ul
+													initial={{ opacity: 0, height: 0 }}
+													animate={{ opacity: 1, height: "auto" }}
+													exit={{ opacity: 0, height: 0 }}
+													transition={{ duration: 0.3 }}
+													className="text-caption text-white/60 text-center mt-2 space-y-1 overflow-hidden"
+												>
+													{step.key_events.map((event) => (
+														<li key={event}>• {event}</li>
+													))}
+												</motion.ul>
+											)}
+										</AnimatePresence>
+									</div>
 								)}
 							</motion.div>
 						)}
