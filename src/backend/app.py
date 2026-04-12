@@ -16,7 +16,7 @@ from src.backend.agent import (
     generate_timeline,
     stream_timeline_chunks,
 )
-from src.backend.geo import merge_countries
+from src.backend.geo import merge_countries, patch_step_coverage
 from src.backend.models import (
     AlternateTimeline,
     FactionDef,
@@ -124,6 +124,8 @@ def _merge_step(step: TimelineStep, faction_map: dict[str, FactionDef]) -> GeoSt
 
 def _merge_timeline(raw: AlternateTimeline) -> GeoTimeline:
     faction_map = {f.id: f for f in raw.factions}
+    for step in raw.steps:
+        patch_step_coverage(step)
     return GeoTimeline(
         title=raw.title,
         steps=[_merge_step(step, faction_map) for step in raw.steps],
@@ -252,6 +254,7 @@ async def _stream_timeline(question: str) -> AsyncGenerator[str, None]:
         if faction_map:
             parsed = _try_parse_steps(buf)
             for step in parsed[sent:]:
+                patch_step_coverage(step)
                 geo_step = _merge_step(step, faction_map)
                 yield _sse("step", geo_step.model_dump())
                 sent += 1
@@ -274,6 +277,7 @@ async def _stream_timeline(question: str) -> AsyncGenerator[str, None]:
             pass
     parsed = _try_parse_steps(buf)
     for step in parsed[sent:]:
+        patch_step_coverage(step)
         geo_step = _merge_step(step, faction_map)
         yield _sse("step", geo_step.model_dump())
         sent += 1
