@@ -8,9 +8,12 @@ import {
 	Crown,
 	Flame,
 	Globe as GlobeIcon,
+	List,
 	type LucideIcon,
 	MapPin,
+	MessageCircle,
 	Network,
+	Send,
 	Shield,
 	Star,
 	Swords,
@@ -20,7 +23,9 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import dynamic from "next/dynamic";
 import {
+	type FormEvent,
 	type MutableRefObject,
+	useCallback,
 	useEffect,
 	useMemo,
 	useRef,
@@ -28,6 +33,15 @@ import {
 } from "react";
 import type { GlobeMethods } from "react-globe.gl";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import {
 	Sheet,
 	SheetContent,
@@ -35,6 +49,15 @@ import {
 	SheetTitle,
 	SheetDescription,
 } from "@/components/ui/sheet";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 
 type GovernmentType =
 	| "monarchy"
@@ -153,6 +176,86 @@ export default function GlobeViewer({
 	const [currentStep, setCurrentStep] = useState(0);
 	const [selectedFaction, setSelectedFaction] = useState<FactionInfo | null>(
 		null,
+	);
+	const [ledgerOpen, setLedgerOpen] = useState(false);
+	const [chatMode, setChatMode] = useState(false);
+	const [chatHistory, setChatHistory] = useState<
+		{ role: string; content: string }[]
+	>([]);
+	const [chatInput, setChatInput] = useState("");
+	const [chatStreaming, setChatStreaming] = useState(false);
+
+	// Reset chat when faction changes
+	useEffect(() => {
+		setChatMode(false);
+		setChatHistory([]);
+		setChatInput("");
+	}, [selectedFaction]);
+
+	const handleChatSubmit = useCallback(
+		async (e: FormEvent) => {
+			e.preventDefault();
+			if (!chatInput.trim() || chatStreaming || !selectedFaction || !timeline)
+				return;
+			const userMsg = chatInput.trim();
+			setChatInput("");
+			setChatHistory((prev) => [...prev, { role: "user", content: userMsg }]);
+			setChatStreaming(true);
+			setChatHistory((prev) => [...prev, { role: "assistant", content: "" }]);
+
+			try {
+				const step = timeline.steps[currentStep];
+				const res = await fetch("http://localhost:8001/api/chat", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						question: timeline.title,
+						timeline_title: timeline.title,
+						step_year: step.year,
+						step_narration: step.narration,
+						faction_name: selectedFaction.name,
+						leader: selectedFaction.leader,
+						government_type: selectedFaction.government_type,
+						capital: selectedFaction.capital,
+						backstory: selectedFaction.backstory,
+						message: userMsg,
+						history: chatHistory.filter((m) => m.content),
+					}),
+				});
+				const reader = res.body?.getReader();
+				if (!reader) return;
+				const decoder = new TextDecoder();
+				let buf = "";
+				while (true) {
+					const { done, value } = await reader.read();
+					if (done) break;
+					buf += decoder.decode(value, { stream: true });
+					const lines = buf.split("\n");
+					buf = lines.pop() ?? "";
+					for (const line of lines) {
+						if (!line.startsWith("data: ")) continue;
+						const payload = JSON.parse(line.slice(6));
+						if (payload.done) break;
+						if (payload.text) {
+							setChatHistory((prev) => {
+								const updated = [...prev];
+								const last = updated[updated.length - 1];
+								if (last && last.role === "assistant") {
+									updated[updated.length - 1] = {
+										...last,
+										content: last.content + payload.text,
+									};
+								}
+								return updated;
+							});
+						}
+					}
+				}
+			} finally {
+				setChatStreaming(false);
+			}
+		},
+		[chatInput, chatStreaming, selectedFaction, timeline, currentStep, chatHistory],
 	);
 
 	const allStepPolygons = useMemo<GeoFeature[][]>(() => {
@@ -293,57 +396,207 @@ export default function GlobeViewer({
 					className="bg-black/90 border-white/10 text-white w-80"
 				>
 					{selectedFaction &&
-						(() => {
-							const GovIcon =
-								GOVERNMENT_ICONS[selectedFaction.government_type] ?? Circle;
-							const govLabel =
-								GOVERNMENT_LABELS[selectedFaction.government_type] ??
-								"Unaligned";
-							return (
-								<SheetHeader>
-									<div className="flex items-center gap-2">
-										<span
-											className="h-3 w-3 rounded-full shrink-0"
-											style={{ backgroundColor: selectedFaction.color }}
-										/>
-										<SheetTitle className="text-white">
-											{selectedFaction.name}
-										</SheetTitle>
-									</div>
-									<div className="flex items-center gap-2 mt-1">
-										<Badge
-											variant="secondary"
-											className="bg-white/10 text-white/80 border-white/10 gap-1"
+						(chatMode ? (
+							<div className="flex flex-col h-full">
+								<div className="flex items-center justify-between mb-3">
+									<SheetTitle className="text-white text-sm">
+										{selectedFaction.leader}
+									</SheetTitle>
+									<Button
+										variant="ghost"
+										size="sm"
+										className="text-white/60 hover:text-white"
+										onClick={() => setChatMode(false)}
+									>
+										Back
+									</Button>
+								</div>
+								<ScrollArea className="flex-1 pr-2">
+									{chatHistory.map((msg, i) => (
+										<div
+											key={i}
+											className={`mb-3 ${msg.role === "user" ? "text-right" : ""}`}
 										>
-											<GovIcon className="h-3 w-3" />
-											{govLabel}
-										</Badge>
-										{selectedFaction.capital &&
-											selectedFaction.capital !== "-" && (
-												<span className="flex items-center gap-1 text-xs text-white/60">
-													<MapPin className="h-3 w-3" />
-													{selectedFaction.capital}
+											<p
+												className={`text-sm inline-block px-3 py-2 rounded-lg ${
+													msg.role === "user"
+														? "bg-white/10 text-white"
+														: "bg-white/5 text-white/80"
+												}`}
+											>
+												{msg.content}
+											</p>
+										</div>
+									))}
+								</ScrollArea>
+								<Separator className="my-2 bg-white/10" />
+								<form
+									onSubmit={handleChatSubmit}
+									className="flex gap-2"
+								>
+									<Textarea
+										value={chatInput}
+										onChange={(e) => setChatInput(e.target.value)}
+										placeholder="Ask a question..."
+										className="bg-white/5 border-white/10 text-white text-sm min-h-[40px] max-h-[80px] resize-none"
+										disabled={chatStreaming}
+									/>
+									<Button
+										type="submit"
+										size="icon"
+										disabled={chatStreaming || !chatInput.trim()}
+										className="shrink-0"
+									>
+										<Send className="h-4 w-4" />
+									</Button>
+								</form>
+							</div>
+						) : (
+							(() => {
+								const GovIcon =
+									GOVERNMENT_ICONS[selectedFaction.government_type] ??
+									Circle;
+								const govLabel =
+									GOVERNMENT_LABELS[selectedFaction.government_type] ??
+									"Unaligned";
+								return (
+									<SheetHeader>
+										<div className="flex items-center gap-2">
+											<span
+												className="h-3 w-3 rounded-full shrink-0"
+												style={{
+													backgroundColor: selectedFaction.color,
+												}}
+											/>
+											<SheetTitle className="text-white">
+												{selectedFaction.name}
+											</SheetTitle>
+										</div>
+										<div className="flex items-center gap-2 mt-1">
+											<Badge
+												variant="secondary"
+												className="bg-white/10 text-white/80 border-white/10 gap-1"
+											>
+												<GovIcon className="h-3 w-3" />
+												{govLabel}
+											</Badge>
+											{selectedFaction.capital &&
+												selectedFaction.capital !== "-" && (
+													<span className="flex items-center gap-1 text-xs text-white/60">
+														<MapPin className="h-3 w-3" />
+														{selectedFaction.capital}
+													</span>
+												)}
+										</div>
+										<SheetDescription className="text-white/50">
+											{selectedFaction.leader !== "-" && (
+												<span className="block text-white/70 mb-1">
+													{selectedFaction.leader}
 												</span>
 											)}
-									</div>
-									<SheetDescription className="text-white/50">
-										{selectedFaction.leader !== "-" && (
-											<span className="block text-white/70 mb-1">
-												{selectedFaction.leader}
-											</span>
+											{selectedFaction.description}
+										</SheetDescription>
+										{selectedFaction.backstory && (
+											<p className="border-l-2 border-white/10 pl-3 mt-3 text-sm text-white/60 leading-relaxed">
+												{selectedFaction.backstory}
+											</p>
 										)}
-										{selectedFaction.description}
-									</SheetDescription>
-									{selectedFaction.backstory && (
-										<p className="border-l-2 border-white/10 pl-3 mt-3 text-sm text-white/60 leading-relaxed">
-											{selectedFaction.backstory}
-										</p>
-									)}
-								</SheetHeader>
-							);
-						})()}
+										{selectedFaction.leader !== "-" && (
+											<Button
+												variant="ghost"
+												size="sm"
+												className="mt-4 text-white/60 hover:text-white"
+												onClick={() => setChatMode(true)}
+											>
+												<MessageCircle className="h-4 w-4 mr-1" />
+												Talk to {selectedFaction.leader}
+											</Button>
+										)}
+									</SheetHeader>
+								);
+							})()
+						))}
 				</SheetContent>
 			</Sheet>
+
+			{/* Faction ledger dialog */}
+			<Dialog open={ledgerOpen} onOpenChange={setLedgerOpen}>
+				<DialogContent className="bg-black/95 border-white/10 text-white max-w-lg max-h-[70vh]">
+					<DialogHeader>
+						<DialogTitle>Factions — {step?.year}</DialogTitle>
+					</DialogHeader>
+					<ScrollArea className="h-[50vh]">
+						<Table>
+							<TableHeader>
+								<TableRow className="border-white/10">
+									<TableHead className="text-white/50">
+										Faction
+									</TableHead>
+									<TableHead className="text-white/50">
+										Government
+									</TableHead>
+									<TableHead className="text-white/50">
+										Leader
+									</TableHead>
+									<TableHead className="text-white/50">
+										Capital
+									</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
+								{step?.factions
+									.filter((f) => f.leader !== "-")
+									.map((f) => (
+										<TableRow
+											key={f.name}
+											className="border-white/10 cursor-pointer hover:bg-white/5"
+											onClick={() => {
+												setSelectedFaction(f);
+												setLedgerOpen(false);
+											}}
+										>
+											<TableCell>
+												<div className="flex items-center gap-2">
+													<span
+														className="h-2 w-2 rounded-full shrink-0"
+														style={{
+															backgroundColor: f.color,
+														}}
+													/>
+													{f.name}
+												</div>
+											</TableCell>
+											<TableCell className="text-white/60 capitalize">
+												{f.government_type.replace("_", " ")}
+											</TableCell>
+											<TableCell className="text-white/60">
+												{f.leader}
+											</TableCell>
+											<TableCell className="text-white/60">
+												{f.capital}
+											</TableCell>
+										</TableRow>
+									))}
+							</TableBody>
+						</Table>
+					</ScrollArea>
+				</DialogContent>
+			</Dialog>
+
+			{/* Ledger button */}
+			{timeline && timeline.steps.length > 0 && (
+				<div className="absolute bottom-0 left-4 z-10 pb-8 pointer-events-auto">
+					<Button
+						variant="ghost"
+						size="sm"
+						className="text-white/50 hover:text-white"
+						onClick={() => setLedgerOpen(true)}
+					>
+						<List className="h-4 w-4 mr-1" />
+						Factions
+					</Button>
+				</div>
+			)}
 
 			{/* Narration + timeline */}
 			{timeline && timeline.steps.length > 0 && (
@@ -392,7 +645,7 @@ export default function GlobeViewer({
 								<div key={s.year} className="flex items-center">
 									{i > 0 && (
 										<div
-											className="h-px w-8 sm:w-12 transition-colors duration-500"
+											className="h-px w-12 sm:w-20 transition-colors duration-500"
 											style={{
 												backgroundColor:
 													isPast || isActive

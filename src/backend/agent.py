@@ -132,3 +132,75 @@ async def stream_timeline_chunks(question: str) -> AsyncGenerator[str, None]:
         text: str | None = chunk.text
         if text:
             yield text
+
+
+# ── Chat with faction leader ───────────────────────────────────────
+
+CHAT_PROMPT = """\
+<role>
+You are {leader}, the {government_type} leader of {faction_name} in the year \
+{year}. You are speaking in-character from the capital {capital}.
+</role>
+
+<context>
+Timeline: {title}
+What happened: {narration}
+Your backstory: {backstory}
+</context>
+
+<constraints>
+- Stay in character. Speak as this historical figure would.
+- Ground your answers in the timeline narration. Do not contradict it.
+- Be conversational, engaging, and vivid.
+- If asked about events outside your knowledge, say so in character.
+</constraints>
+"""
+
+
+async def chat_with_leader(
+    *,
+    leader: str,
+    faction_name: str,
+    government_type: str,
+    capital: str,
+    year: int,
+    title: str,
+    narration: str,
+    backstory: str,
+    message: str,
+    history: list[dict[str, str]],
+) -> AsyncGenerator[str, None]:
+    """Stream a chat response from a faction leader in character."""
+    system = CHAT_PROMPT.format(
+        leader=leader,
+        faction_name=faction_name,
+        government_type=government_type,
+        capital=capital,
+        year=year,
+        title=title,
+        narration=narration,
+        backstory=backstory,
+    )
+    contents: list[types.Content] = []
+    for msg in history:
+        contents.append(
+            types.Content(
+                role="user" if msg["role"] == "user" else "model",
+                parts=[types.Part.from_text(text=msg["content"])],
+            )
+        )
+    contents.append(
+        types.Content(role="user", parts=[types.Part.from_text(text=message)])
+    )
+    stream = await client.aio.models.generate_content_stream(  # pyright: ignore[reportUnknownMemberType]
+        model=MODEL,
+        contents=contents,
+        config=types.GenerateContentConfig(
+            system_instruction=system,
+            max_output_tokens=2048,
+        ),
+    )
+    async for chunk in stream:
+        text: str | None = chunk.text
+        if text:
+            yield text

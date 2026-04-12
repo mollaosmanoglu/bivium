@@ -11,7 +11,11 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from shapely.geometry import shape
 
-from src.backend.agent import generate_timeline, stream_timeline_chunks
+from src.backend.agent import (
+    chat_with_leader,
+    generate_timeline,
+    stream_timeline_chunks,
+)
 from src.backend.geo import merge_countries
 from src.backend.models import (
     AlternateTimeline,
@@ -39,6 +43,20 @@ app.add_middleware(
 
 class TimelineRequest(BaseModel):
     question: str
+
+
+class ChatRequest(BaseModel):
+    question: str
+    timeline_title: str
+    step_year: int
+    step_narration: str
+    faction_name: str
+    leader: str
+    government_type: str
+    capital: str
+    backstory: str
+    message: str
+    history: list[dict[str, str]]
 
 
 def _shade(hex_color: str, factor: float) -> str:
@@ -289,6 +307,33 @@ async def stream_timeline(req: TimelineRequest) -> StreamingResponse:
     logger.info("Stream question: %s", req.question)
     return StreamingResponse(
         _stream_timeline(req.question),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+async def _stream_chat(req: ChatRequest) -> AsyncGenerator[str, None]:
+    async for chunk in chat_with_leader(
+        leader=req.leader,
+        faction_name=req.faction_name,
+        government_type=req.government_type,
+        capital=req.capital,
+        year=req.step_year,
+        title=req.timeline_title,
+        narration=req.step_narration,
+        backstory=req.backstory,
+        message=req.message,
+        history=req.history,
+    ):
+        yield f"data: {json.dumps({'text': chunk})}\n\n"
+    yield 'data: {"done": true}\n\n'
+
+
+@app.post("/api/chat")
+async def chat_endpoint(req: ChatRequest) -> StreamingResponse:
+    logger.info("Chat: %s → %s", req.leader, req.message[:80])
+    return StreamingResponse(
+        _stream_chat(req),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
