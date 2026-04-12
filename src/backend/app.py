@@ -253,7 +253,7 @@ async def _stream_timeline(question: str) -> AsyncGenerator[str, None]:
             parsed = _try_parse_steps(buf)
             for step in parsed[sent:]:
                 geo_step = _merge_step(step, faction_map)
-                yield _sse("step", json.loads(geo_step.model_dump_json()))
+                yield _sse("step", geo_step.model_dump())
                 sent += 1
                 logger.info(
                     "Streamed step %d [%d] (%.1fs)",
@@ -275,7 +275,7 @@ async def _stream_timeline(question: str) -> AsyncGenerator[str, None]:
     parsed = _try_parse_steps(buf)
     for step in parsed[sent:]:
         geo_step = _merge_step(step, faction_map)
-        yield _sse("step", json.loads(geo_step.model_dump_json()))
+        yield _sse("step", geo_step.model_dump())
         sent += 1
 
     # Log final output summary

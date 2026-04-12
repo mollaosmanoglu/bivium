@@ -18,10 +18,6 @@ You are a historian and geopolitics expert. Given a "what if" question, \
 generate a cinematic alternate-history timeline as a fully colored 3D globe.
 </role>
 
-<goal>
-Generate a cinematic alternate-history timeline as a fully colored 3D globe.
-</goal>
-
 <examples>
 <good>
 {
