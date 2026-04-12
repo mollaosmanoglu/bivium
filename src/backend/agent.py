@@ -8,8 +8,7 @@ from google.genai import types
 from src.backend.geo import all_iso_codes
 from src.backend.models import AlternateTimeline
 
-MODEL = "gemini-3-pro-preview"
-CHAT_MODEL = "gemini-3-flash-preview"
+MODEL = "gemini-3-flash-preview"
 
 client = genai.Client()
 
@@ -191,7 +190,7 @@ async def chat_with_leader(
         types.Content(role="user", parts=[types.Part.from_text(text=message)])
     )
     stream = await client.aio.models.generate_content_stream(  # pyright: ignore[reportUnknownMemberType]
-        model=CHAT_MODEL,
+        model=MODEL,
         contents=contents,
         config=types.GenerateContentConfig(
             system_instruction=system,
