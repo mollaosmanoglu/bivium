@@ -403,15 +403,23 @@ export default function GlobeViewer({
 											key={i}
 											className={`mb-3 ${msg.role === "user" ? "text-right" : ""}`}
 										>
-											<p
-												className={`text-sm inline-block px-3 py-2 rounded-lg ${
-													msg.role === "user"
-														? "bg-white/10 text-white"
-														: "bg-white/5 text-white/80"
-												}`}
-											>
-												{msg.content}
-											</p>
+											{msg.role === "assistant" && !msg.content && chatStreaming ? (
+												<div className="inline-flex gap-1 px-3 py-2 rounded-lg bg-white/5">
+													<span className="h-1.5 w-1.5 rounded-full bg-white/40 animate-bounce [animation-delay:0ms]" />
+													<span className="h-1.5 w-1.5 rounded-full bg-white/40 animate-bounce [animation-delay:150ms]" />
+													<span className="h-1.5 w-1.5 rounded-full bg-white/40 animate-bounce [animation-delay:300ms]" />
+												</div>
+											) : (
+												<p
+													className={`text-sm inline-block px-3 py-2 rounded-lg ${
+														msg.role === "user"
+															? "bg-white/10 text-white"
+															: "bg-white/5 text-white/80"
+													}`}
+												>
+													{msg.content}
+												</p>
+											)}
 										</div>
 									))}
 									<div ref={chatEndRef} />

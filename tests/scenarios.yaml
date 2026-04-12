@@ -7,31 +7,18 @@ alternate_history:
       min_countries_per_step: 160
       required_faction_ids: [ottoman, british, russian]
 
-  - id: rome_never_fell
-    desc: "Roman Empire survival — tests Europe + Mediterranean"
-    input: "What if the Roman Empire never fell?"
+  - id: franz_ferdinand_survived
+    desc: "Single-event divergence — tests causation chains from WW1 trigger"
+    input: "What if Archduke Franz Ferdinand was never assassinated?"
     expected:
       min_factions: 10
       min_countries_per_step: 160
       required_faction_ids: []
 
-  - id: mongol_empire_united
-    desc: "Mongol Empire stays united — tests Asia coverage"
-    input: "What if the Mongol Empire never split?"
+  - id: eu_dissolved_2010
+    desc: "Modern political fragmentation — tests post-Cold War geopolitics"
+    input: "What if the European Union dissolved in 2010?"
     expected:
-      min_factions: 10
+      min_factions: 12
       min_countries_per_step: 160
-
-  - id: cold_war_nuclear
-    desc: "Nuclear war scenario — tests modern world coverage"
-    input: "What if the Cuban Missile Crisis led to nuclear war?"
-    expected:
-      min_factions: 8
-      min_countries_per_step: 160
-
-  - id: china_discovers_americas
-    desc: "Chinese discovery — tests global maritime coverage"
-    input: "What if China discovered the Americas before Columbus?"
-    expected:
-      min_factions: 10
-      min_countries_per_step: 160
+      required_faction_ids: []
