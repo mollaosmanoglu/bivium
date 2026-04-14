@@ -109,6 +109,7 @@ Step (1969):
 - When an entity evolves (Ottoman Empire -> Ottoman Republic), keep the SAME id. \
 Update the leader and description — don't create a new entity.
 - Each step should have MORE active entries than the previous.
+- Every step must mention what the subject LOST or failed at, not just gains.
 </constraints>
 """
 
