@@ -60,12 +60,29 @@ generate a cinematic alternate-history timeline as a fully colored 3D globe.
 </bad>
 
 <good>
-{"narration": "The Porte narrowly survives the Balkan Wars but emerges weakened — Kurdish unrest spreads east while Arab nationalists demand autonomy.", "key_events": ["Kurdish revolt in Diyarbakir crushed at heavy cost", "Britain funds Arab nationalist cells in Hejaz", "Young Turk reformists force a constitutional assembly"]}
-{"narration": "Oil wealth floods the treasury but poisons politics — Arab provinces demand revenue sharing, the military eyes power.", "key_events": ["Arab federalists in Baghdad threaten secession", "Ottoman-Soviet border skirmishes erupt in the Caucasus", "A military coup in Ankara narrowly fails"]}
+"What if the Ottoman Empire never fell?"
+Step 1: {"narration": "The Porte narrowly survives the Balkan Wars but emerges weakened — Kurdish unrest spreads east.", "key_events": ["Kurdish revolt in Diyarbakir crushed at heavy cost", "Britain funds Arab nationalist cells in Hejaz"]}
+Step 3: {"narration": "Oil wealth floods the treasury but poisons politics — the military eyes power, the Sultan is a figurehead.", "key_events": ["Arab federalists in Baghdad threaten secession over oil royalties", "A military coup in Ankara narrowly fails"]}
+Step 5: {"narration": "The empire is a bureaucratic husk — Kurdistan is autonomous, Egypt drifts toward China, and the Sultan opens a museum in the old harem.", "key_events": ["Kurdistan holds its first referendum; Constantinople can't stop it", "Egypt signs a Belt and Road port deal, sidelining Ottoman trade", "Youth protests in Ankara demand a republic; 40 arrested"]}
+
+"What if China discovered the Americas?"
+Step 1: {"narration": "Zheng He's fleet reaches Fusang but the Emperor recalls the ships — the court scholars call it a waste.", "key_events": ["Treasure Fleet makes landfall at modern-day Monterey", "Court faction led by Confucian scholars opposes further voyages"]}
+Step 3: {"narration": "Chinese coastal colonies struggle — tropical disease, Aztec resistance, and a 10,000-mile supply chain.", "key_events": ["Malaria kills half the Fusang garrison in one summer", "Aztec diplomats play Ming and Inca off each other"]}
+Step 5: {"narration": "The colonies have gone native — Fusang speaks a Cantonese-Nahuatl creole, ignores Beijing, and trades with Japan behind the Emperor's back.", "key_events": ["Fusang governor refuses to pay tribute for the third year running", "Japanese merchants control 60% of Pacific silver trade", "A smallpox epidemic kills 200,000 in the Mississippi colonies"]}
+
+"What if Rome never fell?"
+Step 3: {"narration": "The legions hold the Rhine but the treasury is empty — three emperors in five years, each assassinated by the next.", "key_events": ["Emperor Gaius III murdered by his own Praetorian Guard", "Plague sweeps Hispania, killing a quarter of the population", "Persian embassy demands Rome withdraw from Mesopotamia"]}
+Step 5: {"narration": "Rome survives in name only — a patchwork of feuding governors who still mint coins with the Eagle but answer to no one.", "key_events": ["The governor of Britannia declares independence; Rome lacks ships to respond", "Constantinople and Rome each claim the 'true' Senate", "Barbarian foederati now command half the legions"]}
 </good>
 <bad>
-{"narration": "The Ottoman Empire avoids all decline and becomes a global superpower.", "key_events": ["The empire grows stronger", "The empire dominates trade", "The empire conquers new territory"]}
-{"narration": "The Ottoman Empire is now the most powerful nation on Earth.", "key_events": ["All rivals submit", "Global hegemony achieved"]}
+"What if the Ottoman Empire never fell?"
+Step 5: {"narration": "The Ottoman Empire mediates all global conflicts and leads humanity into a golden age of peace.", "key_events": ["Constantinople hosts the Global Peace Summit", "Ottoman Mars colony established", "The Ottoman Lira becomes the world reserve currency"]}
+
+"What if China discovered the Americas?"
+Step 5: {"narration": "A joint Ming-Aztec mission lands on the Moon. The Pacific Commonwealth rules the world in harmony.", "key_events": ["China and the Aztecs achieve world peace", "All European powers surrender to the Ming", "The Great Synthesis merges all cultures into one"]}
+
+"What if Rome never fell?"
+Step 5: {"narration": "The Roman Space Agency launches humanity's first interstellar probe. All nations live under the Pax Romana.", "key_events": ["Roman fusion reactors power the entire planet", "Global digital citizenship granted to every human", "The Senate votes to colonize Alpha Centauri"]}
 </bad>
 
 <good>
