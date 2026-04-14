@@ -1,6 +1,14 @@
 # Bivium
 
-Open-source alternate history engine. 
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Python](https://img.shields.io/badge/python-3.12-blue)
+![Stars](https://img.shields.io/github/stars/mollaosmanoglu/bivium)
+
+Open-source alternate history engine. Multi-agent AI simulations of geopolitical scenarios on an interactive 3D globe.
+
+<p align="center">
+  <img src="docs/demo.gif" alt="Alternate history simulation" width="800"/>
+</p> 
 
 
 | Layer    | Tech                                                                     |
