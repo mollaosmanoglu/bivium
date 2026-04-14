@@ -145,7 +145,7 @@ export default function Home() {
 
 			{!hasSteps && (
 				<div className="absolute inset-0 flex items-center justify-center z-10">
-					<Card className="bg-white/5 border-white/10 backdrop-blur-md w-full max-w-md mx-4">
+					<Card className="bg-[#1a1a1a] border-white/[0.08] w-full max-w-lg mx-4">
 						<CardContent className="pt-6">
 							<form
 								onSubmit={handleSubmit}
@@ -159,7 +159,7 @@ export default function Home() {
 										value={question}
 										onChange={(e) => setQuestion(e.target.value)}
 										placeholder="the Roman Empire never fell?"
-										className="bg-white/10 border-white/20 text-white placeholder:text-white/40"
+										className="bg-white/[0.06] border-white/[0.08] text-white placeholder:text-white/30"
 										disabled={loading}
 									/>
 									<Button
@@ -172,7 +172,7 @@ export default function Home() {
 												SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)],
 											)
 										}
-										className="text-white/60 hover:text-white hover:bg-white/10 shrink-0"
+										className="text-white/40 hover:text-white hover:bg-white/5 shrink-0"
 										aria-label="Surprise me with a random scenario"
 									>
 										<Shuffle className="h-4 w-4" />
