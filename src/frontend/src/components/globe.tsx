@@ -99,7 +99,7 @@ interface CameraPosition {
 	altitude: number;
 }
 
-interface FactionInfo {
+interface EntityInfo {
 	name: string;
 	color: string;
 	leader: string;
@@ -113,7 +113,7 @@ interface FactionInfo {
 }
 
 interface MergedRegion {
-	faction_name: string;
+	entity_name: string;
 	region_name: string;
 	color: string;
 	geometry: {
@@ -127,7 +127,7 @@ interface TimelineStep {
 	narration: string;
 	key_events: string[];
 	camera: CameraPosition;
-	factions: FactionInfo[];
+	entities: EntityInfo[];
 	regions: MergedRegion[];
 }
 
@@ -145,7 +145,7 @@ interface GlobeViewerProps {
 type GeoFeature = {
 	type: "Feature";
 	properties: {
-		faction_name: string;
+		entity_name: string;
 		region_name: string;
 		color: string;
 		idx: number;
@@ -162,7 +162,7 @@ export default function GlobeViewer({
 		GlobeMethods | undefined
 	>;
 	const [currentStep, setCurrentStep] = useState(0);
-	const [selectedFaction, setSelectedFaction] = useState<FactionInfo | null>(
+	const [selectedEntity, setSelectedEntity] = useState<EntityInfo | null>(
 		null,
 	);
 	const [eventsOpen, setEventsOpen] = useState(false);
@@ -174,12 +174,12 @@ export default function GlobeViewer({
 	const [chatStreaming, setChatStreaming] = useState(false);
 	const chatEndRef = useRef<HTMLDivElement>(null);
 
-	// Reset chat when faction changes
+	// Reset chat when entity changes
 	useEffect(() => {
 		setChatMode(false);
 		setChatHistory([]);
 		setChatInput("");
-	}, [selectedFaction]);
+	}, [selectedEntity]);
 
 	// Auto-scroll to bottom when chat updates
 	useEffect(() => {
@@ -189,7 +189,7 @@ export default function GlobeViewer({
 	const handleChatSubmit = useCallback(
 		async (e: FormEvent) => {
 			e.preventDefault();
-			if (!chatInput.trim() || chatStreaming || !selectedFaction || !timeline)
+			if (!chatInput.trim() || chatStreaming || !selectedEntity || !timeline)
 				return;
 			const userMsg = chatInput.trim();
 			setChatInput("");
@@ -207,10 +207,10 @@ export default function GlobeViewer({
 						timeline_title: timeline.title,
 						step_year: step.year,
 						step_narration: step.narration,
-						faction_name: selectedFaction.name,
-						leader: selectedFaction.leader,
-						government_type: selectedFaction.government_type,
-						capital: selectedFaction.capital,
+						entity_name: selectedEntity.name,
+						leader: selectedEntity.leader,
+						government_type: selectedEntity.government_type,
+						capital: selectedEntity.capital,
 						message: userMsg,
 						history: chatHistory.filter((m) => m.content),
 					}),
@@ -248,7 +248,7 @@ export default function GlobeViewer({
 				setChatStreaming(false);
 			}
 		},
-		[chatInput, chatStreaming, selectedFaction, timeline, currentStep, chatHistory],
+		[chatInput, chatStreaming, selectedEntity, timeline, currentStep, chatHistory],
 	);
 
 	const allStepPolygons = useMemo<GeoFeature[][]>(() => {
@@ -259,7 +259,7 @@ export default function GlobeViewer({
 				.map((r, i) => ({
 					type: "Feature" as const,
 					properties: {
-						faction_name: r.faction_name,
+						entity_name: r.entity_name,
 						region_name: r.region_name,
 						color: r.color,
 						idx: i,
@@ -271,15 +271,15 @@ export default function GlobeViewer({
 
 	const polygons = allStepPolygons[currentStep] ?? [];
 	const step = timeline?.steps[currentStep];
-	const factionLabels = useMemo(
+	const entityLabels = useMemo(
 		() =>
-			step?.factions.filter((f) => f.leader !== "-" && f.lat !== 0) ?? [],
+			step?.entities.filter((f) => f.leader !== "-" && f.lat !== 0) ?? [],
 		[step],
 	);
 
 	const capitalMarkers = useMemo(
 		() =>
-			step?.factions
+			step?.entities
 				.filter((f) => f.capital && f.capital !== "-" && f.capital_lat !== 0)
 				.map((f) => ({
 					lat: f.capital_lat,
@@ -348,27 +348,27 @@ export default function GlobeViewer({
 				polygonStrokeColor={() => "rgba(0, 0, 0, 0)"}
 				polygonLabel={(f: object) => {
 					const feat = f as GeoFeature;
-					const faction = step?.factions.find(
-						(fac) => fac.name === feat.properties.faction_name,
+					const entity = step?.entities.find(
+						(fac) => fac.name === feat.properties.entity_name,
 					);
-					if (!faction) return `<div style="padding:4px 8px;background:rgba(0,0,0,0.6);border-radius:4px;color:rgba(255,255,255,0.4);font-size:11px">${feat.properties.faction_name}</div>`;
-					const govLine = `<div style="color:rgba(255,255,255,0.5);font-size:11px;text-transform:capitalize;margin-top:2px">${faction.government_type.replace("_", " ")}</div>`;
-					const leaderLine = faction.leader && faction.leader !== "-"
-						? `<div style="color:rgba(255,255,255,0.8);font-size:12px;margin-top:2px">${faction.leader}</div>`
+					if (!entity) return `<div style="padding:4px 8px;background:rgba(0,0,0,0.6);border-radius:4px;color:rgba(255,255,255,0.4);font-size:11px">${feat.properties.entity_name}</div>`;
+					const govLine = `<div style="color:rgba(255,255,255,0.5);font-size:11px;text-transform:capitalize;margin-top:2px">${entity.government_type.replace("_", " ")}</div>`;
+					const leaderLine = entity.leader && entity.leader !== "-"
+						? `<div style="color:rgba(255,255,255,0.8);font-size:12px;margin-top:2px">${entity.leader}</div>`
 						: "";
 					return `<div style="padding:6px 10px;background:rgba(0,0,0,0.8);border-radius:4px;color:white;text-align:center;min-width:120px">
-						<b>${feat.properties.faction_name}</b>
+						<b>${feat.properties.entity_name}</b>
 						${govLine}
 						${leaderLine}
 					</div>`;
 				}}
 				polygonsTransitionDuration={0}
-				htmlElementsData={factionLabels}
-				htmlLat={(d: object) => (d as FactionInfo).lat}
-				htmlLng={(d: object) => (d as FactionInfo).lng}
+				htmlElementsData={entityLabels}
+				htmlLat={(d: object) => (d as EntityInfo).lat}
+				htmlLng={(d: object) => (d as EntityInfo).lng}
 				htmlAltitude={0.02}
 				htmlElement={(d: object) => {
-					const f = d as FactionInfo;
+					const f = d as EntityInfo;
 					const el = document.createElement("div");
 					el.style.cssText =
 						"pointer-events:none;text-align:center;white-space:nowrap;";
@@ -378,10 +378,10 @@ export default function GlobeViewer({
 				htmlTransitionDuration={0}
 				onPolygonClick={(f: object) => {
 					const feat = f as GeoFeature;
-					const faction = step?.factions.find(
-						(fac) => fac.name === feat.properties.faction_name,
+					const entity = step?.entities.find(
+						(fac) => fac.name === feat.properties.entity_name,
 					);
-					if (faction) setSelectedFaction(faction);
+					if (entity) setSelectedEntity(entity);
 				}}
 				atmosphereColor="#3a228a"
 				atmosphereAltitude={0.2}
@@ -406,18 +406,18 @@ export default function GlobeViewer({
 
 			{/* Faction detail sheet */}
 			<Sheet
-				open={!!selectedFaction}
-				onOpenChange={(open: boolean) => !open && setSelectedFaction(null)}
+				open={!!selectedEntity}
+				onOpenChange={(open: boolean) => !open && setSelectedEntity(null)}
 			>
 				<SheetContent
 					side="left"
 					className="bg-black/90 border-white/10 text-white w-80"
 				>
-					{selectedFaction &&
+					{selectedEntity &&
 						(chatMode ? (
 							<div className="flex flex-col h-[calc(100vh-2rem)] pt-8 px-4">
 								<SheetTitle className="text-white text-sm mb-3 shrink-0">
-									{selectedFaction.leader}
+									{selectedEntity.leader}
 								</SheetTitle>
 								<ScrollArea className="flex-1 min-h-0 pr-2">
 									{chatHistory.map((msg, i) => (
@@ -476,10 +476,10 @@ export default function GlobeViewer({
 						) : (
 							(() => {
 								const GovIcon =
-									GOVERNMENT_ICONS[selectedFaction.government_type] ??
+									GOVERNMENT_ICONS[selectedEntity.government_type] ??
 									Circle;
 								const govLabel =
-									GOVERNMENT_LABELS[selectedFaction.government_type] ??
+									GOVERNMENT_LABELS[selectedEntity.government_type] ??
 									"Unaligned";
 								return (
 									<SheetHeader>
@@ -487,11 +487,11 @@ export default function GlobeViewer({
 											<span
 												className="h-3 w-3 rounded-full shrink-0"
 												style={{
-													backgroundColor: selectedFaction.color,
+													backgroundColor: selectedEntity.color,
 												}}
 											/>
 											<SheetTitle className="text-white">
-												{selectedFaction.name}
+												{selectedEntity.name}
 											</SheetTitle>
 										</div>
 										<div className="flex items-center gap-2 mt-1">
@@ -502,23 +502,23 @@ export default function GlobeViewer({
 												<GovIcon className="h-3 w-3" />
 												{govLabel}
 											</Badge>
-											{selectedFaction.capital &&
-												selectedFaction.capital !== "-" && (
+											{selectedEntity.capital &&
+												selectedEntity.capital !== "-" && (
 													<span className="flex items-center gap-1 text-xs text-white/60">
 														<MapPin className="h-3 w-3" />
-														{selectedFaction.capital}
+														{selectedEntity.capital}
 													</span>
 												)}
 										</div>
 										<SheetDescription className="text-white/50">
-											{selectedFaction.leader !== "-" && (
+											{selectedEntity.leader !== "-" && (
 												<span className="block text-white/70 mb-1">
-													{selectedFaction.leader}
+													{selectedEntity.leader}
 												</span>
 											)}
-											{selectedFaction.description}
+											{selectedEntity.description}
 										</SheetDescription>
-										{selectedFaction.leader !== "-" &&
+										{selectedEntity.leader !== "-" &&
 											!streaming &&
 											timeline &&
 											currentStep === timeline.steps.length - 1 && (
@@ -529,7 +529,7 @@ export default function GlobeViewer({
 													onClick={() => setChatMode(true)}
 												>
 													<MessageCircle className="h-4 w-4 mr-1" />
-													Talk to {selectedFaction.leader}
+													Talk to {selectedEntity.leader}
 												</Button>
 											)}
 									</SheetHeader>

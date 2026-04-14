@@ -18,8 +18,8 @@ from src.backend.agent import (
 from src.backend.geo import merge_countries
 from src.backend.models import (
     AlternateTimeline,
-    FactionDef,
-    FactionInfo,
+    EntityDef,
+    EntityInfo,
     GeoStep,
     GeoTimeline,
     MergedRegion,
@@ -49,7 +49,7 @@ class ChatRequest(BaseModel):
     timeline_title: str
     step_year: int
     step_narration: str
-    faction_name: str
+    entity_name: str
     leader: str
     government_type: str
     capital: str
@@ -250,17 +250,17 @@ GEO_REGIONS: dict[str, tuple[list[str], str]] = {
 }
 
 
-def _merge_step(step: TimelineStep, faction_map: dict[str, FactionDef]) -> GeoStep:
+def _merge_step(step: TimelineStep, entity_map: dict[str, EntityDef]) -> GeoStep:
     regions: list[MergedRegion] = []
-    faction_infos: list[FactionInfo] = []
+    entity_infos: list[EntityInfo] = []
     assigned: set[str] = set()
 
-    for sf in step.faction_states:
-        fdef = faction_map.get(sf.faction_id)
+    for sf in step.entity_states:
+        fdef = entity_map.get(sf.entity_id)
         if not fdef:
             continue
         # Skip unaligned — let geo background handle them
-        if sf.government_type == "unaligned" or sf.faction_id == "unaligned":
+        if sf.government_type == "unaligned" or sf.entity_id == "unaligned":
             continue
         assigned.update(sf.countries)
         geometry = merge_countries(sf.countries)
@@ -269,14 +269,14 @@ def _merge_step(step: TimelineStep, faction_map: dict[str, FactionDef]) -> GeoSt
             centroid = geom.centroid
             regions.append(
                 MergedRegion(
-                    faction_name=fdef.name,
+                    entity_name=fdef.name,
                     region_name="",
                     color=fdef.color,
                     geometry=geometry,
                 )
             )
-            faction_infos.append(
-                FactionInfo(
+            entity_infos.append(
+                EntityInfo(
                     name=fdef.name,
                     color=fdef.color,
                     leader=sf.leader,
@@ -299,7 +299,7 @@ def _merge_step(step: TimelineStep, faction_map: dict[str, FactionDef]) -> GeoSt
         if geometry is not None:
             regions.append(
                 MergedRegion(
-                    faction_name=region_name,
+                    entity_name=region_name,
                     region_name="",
                     color=color,
                     geometry=geometry,
@@ -311,16 +311,16 @@ def _merge_step(step: TimelineStep, faction_map: dict[str, FactionDef]) -> GeoSt
         narration=step.narration,
         key_events=step.key_events,
         camera=step.camera,
-        factions=faction_infos,
+        entities=entity_infos,
         regions=regions,
     )
 
 
 def _merge_timeline(raw: AlternateTimeline) -> GeoTimeline:
-    faction_map = {f.id: f for f in raw.factions}
+    entity_map = {f.id: f for f in raw.entities}
     return GeoTimeline(
         title=raw.title,
-        steps=[_merge_step(step, faction_map) for step in raw.steps],
+        steps=[_merge_step(step, entity_map) for step in raw.steps],
     )
 
 
@@ -360,22 +360,22 @@ def _extract_array_objects(buf: str, key: str) -> list[str]:
     return objects
 
 
-def _try_parse_factions(buf: str) -> list[FactionDef]:
-    """Extract FactionDef objects from the top-level factions array.
+def _try_parse_entities(buf: str) -> list[EntityDef]:
+    """Extract EntityDef objects from the top-level entities array.
 
-    Only parses once "steps" key appears — that guarantees the factions
+    Only parses once "steps" key appears — that guarantees the entities
     array is fully streamed.
     """
     if '"steps"' not in buf:
         return []
-    factions: list[FactionDef] = []
+    entities: list[EntityDef] = []
     steps_idx = buf.find('"steps"')
-    for obj_str in _extract_array_objects(buf[:steps_idx], "factions"):
+    for obj_str in _extract_array_objects(buf[:steps_idx], "entities"):
         try:
-            factions.append(FactionDef.model_validate_json(obj_str))
+            entities.append(EntityDef.model_validate_json(obj_str))
         except Exception:  # noqa: BLE001
             pass
-    return factions
+    return entities
 
 
 def _try_parse_steps(buf: str) -> list[TimelineStep]:
@@ -410,8 +410,8 @@ async def _stream_timeline(question: str) -> AsyncGenerator[str, None]:
     buf = ""
     sent = 0
     title_sent = False
-    faction_defs: list[FactionDef] = []
-    faction_map: dict[str, FactionDef] = {}
+    entity_defs: list[EntityDef] = []
+    entity_map: dict[str, EntityDef] = {}
 
     async for chunk in stream_timeline_chunks(question):
         buf += chunk
@@ -435,18 +435,18 @@ async def _stream_timeline(question: str) -> AsyncGenerator[str, None]:
                             title_sent = True
                             logger.info("Streamed title: %s", title)
 
-        # Parse factions once (they come before steps in the JSON)
-        if not faction_defs:
-            faction_defs = _try_parse_factions(buf)
-            if faction_defs:
-                faction_map = {f.id: f for f in faction_defs}
-                logger.info("Parsed %d faction defs", len(faction_defs))
+        # Parse entities once (they come before steps in the JSON)
+        if not entity_defs:
+            entity_defs = _try_parse_entities(buf)
+            if entity_defs:
+                entity_map = {f.id: f for f in entity_defs}
+                logger.info("Parsed %d entity defs", len(entity_defs))
 
         # Try to parse completed steps
-        if faction_map:
+        if entity_map:
             parsed = _try_parse_steps(buf)
             for step in parsed[sent:]:
-                geo_step = _merge_step(step, faction_map)
+                geo_step = _merge_step(step, entity_map)
                 yield _sse("step", geo_step.model_dump())
                 sent += 1
                 logger.info(
@@ -457,9 +457,9 @@ async def _stream_timeline(question: str) -> AsyncGenerator[str, None]:
                 )
 
     # Parse any remaining steps from the complete buffer
-    if not faction_defs:
-        faction_defs = _try_parse_factions(buf)
-        faction_map = {f.id: f for f in faction_defs}
+    if not entity_defs:
+        entity_defs = _try_parse_entities(buf)
+        entity_map = {f.id: f for f in entity_defs}
     if not title_sent:
         try:
             raw = AlternateTimeline.model_validate_json(buf)
@@ -468,7 +468,7 @@ async def _stream_timeline(question: str) -> AsyncGenerator[str, None]:
             pass
     parsed = _try_parse_steps(buf)
     for step in parsed[sent:]:
-        geo_step = _merge_step(step, faction_map)
+        geo_step = _merge_step(step, entity_map)
         yield _sse("step", geo_step.model_dump())
         sent += 1
 
@@ -478,13 +478,13 @@ async def _stream_timeline(question: str) -> AsyncGenerator[str, None]:
         logger.info("Final output JSON:\n%s", raw.model_dump_json(indent=2))
         for i, step in enumerate(raw.steps):
             codes: set[str] = set()
-            for fs in step.faction_states:
+            for fs in step.entity_states:
                 codes.update(fs.countries)
             logger.info(
                 "Step %d [%d]: %d entities, %d countries",
                 i + 1,
                 step.year,
-                len(step.faction_states),
+                len(step.entity_states),
                 len(codes),
             )
     except Exception:  # noqa: BLE001
@@ -508,7 +508,7 @@ async def stream_timeline(req: TimelineRequest) -> StreamingResponse:
 async def _stream_chat(req: ChatRequest) -> AsyncGenerator[str, None]:
     async for chunk in chat_with_leader(
         leader=req.leader,
-        faction_name=req.faction_name,
+        entity_name=req.entity_name,
         government_type=req.government_type,
         capital=req.capital,
         year=req.step_year,

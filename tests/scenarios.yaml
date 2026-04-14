@@ -3,38 +3,38 @@ alternate_history:
     desc: "Ottoman Empire survival — tests Middle East + Balkans coverage"
     input: "What if the Ottoman Empire never fell?"
     expected:
-      min_factions: 12
+      min_entities: 12
       min_countries_per_step: 160
-      required_faction_ids: [ottoman, british, russian]
+      required_entity_ids: [ottoman, british, russian]
 
   - id: franz_ferdinand_survived
     desc: "Single-event divergence — tests causation chains from WW1 trigger"
     input: "What if Archduke Franz Ferdinand was never assassinated?"
     expected:
-      min_factions: 10
+      min_entities: 10
       min_countries_per_step: 160
-      required_faction_ids: []
+      required_entity_ids: []
 
   - id: eu_dissolved_2010
     desc: "Modern political fragmentation — tests post-Cold War geopolitics"
     input: "What if the European Union dissolved in 2010?"
     expected:
-      min_factions: 12
+      min_entities: 12
       min_countries_per_step: 160
-      required_faction_ids: []
+      required_entity_ids: []
 
   - id: china_discovers_americas
     desc: "Chinese discovery — tests global maritime coverage and non-European focus"
     input: "What if China discovered the Americas before Columbus?"
     expected:
-      min_factions: 12
+      min_entities: 12
       min_countries_per_step: 100
-      required_faction_ids: []
+      required_entity_ids: []
 
   - id: rome_never_fell
     desc: "Ancient divergence — tests era-appropriate years and long timescale"
     input: "What if the Roman Empire never fell?"
     expected:
-      min_factions: 12
+      min_entities: 12
       min_countries_per_step: 100
-      required_faction_ids: []
+      required_entity_ids: []

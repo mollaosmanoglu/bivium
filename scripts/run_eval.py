@@ -54,19 +54,19 @@ async def task(input: dict[str, Any]) -> dict[str, Any]:
     timeline = await generate_timeline(question)
     elapsed = time.monotonic() - t0
 
-    faction_ids = [f.id for f in timeline.factions]
+    entity_ids = [f.id for f in timeline.entities]
     countries_per_step: list[int] = []
     duplicates_per_step: list[int] = []
     max_subregion_size: int = 0
-    total_step_factions = 0
+    total_step_entities = 0
     incomplete_enrichments = 0
     steps_under_key_events_floor = 0
     steps_over_key_events_cap = 0
 
     for step in timeline.steps:
         codes: list[str] = []
-        for fs in step.faction_states:
-            total_step_factions += 1
+        for fs in step.entity_states:
+            total_step_entities += 1
             if not fs.government_type:
                 incomplete_enrichments += 1
             max_subregion_size = max(max_subregion_size, len(fs.countries))
@@ -80,14 +80,14 @@ async def task(input: dict[str, Any]) -> dict[str, Any]:
             steps_over_key_events_cap += 1
 
     return {
-        "faction_count": len(timeline.factions),
-        "faction_ids": faction_ids,
+        "entity_count": len(timeline.entities),
+        "entity_ids": entity_ids,
         "steps": len(timeline.steps),
         "countries_per_step": countries_per_step,
         "min_countries": min(countries_per_step) if countries_per_step else 0,
         "duplicates_per_step": duplicates_per_step,
         "max_subregion_size": max_subregion_size,
-        "total_step_factions": total_step_factions,
+        "total_step_entities": total_step_entities,
         "incomplete_enrichments": incomplete_enrichments,
         "steps_under_key_events_floor": steps_under_key_events_floor,
         "steps_over_key_events_cap": steps_over_key_events_cap,
@@ -99,20 +99,20 @@ async def task(input: dict[str, Any]) -> dict[str, Any]:
 # ── Evaluators ──────────────────────────────────────────────────────
 
 
-def faction_count(output: Any, expected: Any) -> dict[str, Any]:
+def entity_count(output: Any, expected: Any) -> dict[str, Any]:
     """Check minimum faction count."""
-    actual = output.get("faction_count", 0)
-    minimum = expected.get("min_factions", 10)
+    actual = output.get("entity_count", 0)
+    minimum = expected.get("min_entities", 10)
     if actual >= minimum:
         return {
             "score": 1.0,
             "label": "PASS",
-            "explanation": f"{actual} factions (>= {minimum})",
+            "explanation": f"{actual} entities (>= {minimum})",
         }
     return {
         "score": actual / minimum,
         "label": "FAIL",
-        "explanation": f"{actual} factions (< {minimum})",
+        "explanation": f"{actual} entities (< {minimum})",
     }
 
 
@@ -134,7 +134,7 @@ def country_coverage(output: Any, expected: Any) -> dict[str, Any]:
 
 
 def no_duplicate_countries(output: Any, expected: Any) -> dict[str, Any]:
-    """Check no ISO code appears in multiple factions in a single step."""
+    """Check no ISO code appears in multiple entities in a single step."""
     dupes = output.get("duplicates_per_step", [])
     total_dupes = sum(dupes)
     if total_dupes == 0:
@@ -162,27 +162,27 @@ def no_lazy_blobs(output: Any, expected: Any) -> dict[str, Any]:
     }
 
 
-def required_factions(output: Any, expected: Any) -> dict[str, Any]:
+def required_entities(output: Any, expected: Any) -> dict[str, Any]:
     """Check that required faction IDs are present."""
-    required = set(expected.get("required_faction_ids", []))
+    required = set(expected.get("required_entity_ids", []))
     if not required:
         return {
             "score": 1.0,
             "label": "PASS",
-            "explanation": "no required factions specified",
+            "explanation": "no required entities specified",
         }
-    actual = set(output.get("faction_ids", []))
+    actual = set(output.get("entity_ids", []))
     missing = required - actual
     if not missing:
         return {
             "score": 1.0,
             "label": "PASS",
-            "explanation": "all required factions present",
+            "explanation": "all required entities present",
         }
     return {
         "score": 0.0,
         "label": "FAIL",
-        "explanation": f"missing factions: {', '.join(sorted(missing))}",
+        "explanation": f"missing entities: {', '.join(sorted(missing))}",
     }
 
 
@@ -205,10 +205,10 @@ def key_events_completeness(output: Any, expected: Any) -> dict[str, Any]:
 
 def enrichment_completeness(output: Any, expected: Any) -> dict[str, Any]:
     """Check every step-faction has government_type, capital, and backstory."""
-    total = output.get("total_step_factions", 0)
+    total = output.get("total_step_entities", 0)
     incomplete = output.get("incomplete_enrichments", 0)
     if total == 0:
-        return {"score": 1.0, "label": "PASS", "explanation": "no factions"}
+        return {"score": 1.0, "label": "PASS", "explanation": "no entities"}
     rate = (total - incomplete) / total
     threshold = expected.get("min_enrichment_completeness", 1.0)
     label = "PASS" if rate >= threshold else "FAIL"
@@ -310,11 +310,11 @@ async def main() -> None:
         dataset=dataset,
         task=task,
         evaluators={
-            "faction_count": faction_count,
+            "entity_count": entity_count,
             "country_coverage": country_coverage,
             "no_duplicate_countries": no_duplicate_countries,
             "no_lazy_blobs": no_lazy_blobs,
-            "required_factions": required_factions,
+            "required_entities": required_entities,
             "enrichment_completeness": enrichment_completeness,
             "key_events_completeness": key_events_completeness,
             "generation_speed": generation_speed,

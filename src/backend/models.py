@@ -27,7 +27,7 @@ class CameraPosition(BaseModel):
     )
 
 
-class FactionDef(BaseModel):
+class EntityDef(BaseModel):
     id: str = Field(
         description="Stable short slug, e.g. 'ottoman', 'british'. Same across all steps."
     )
@@ -37,16 +37,14 @@ class FactionDef(BaseModel):
     )
 
 
-class StepFaction(BaseModel):
-    faction_id: str = Field(
-        description="References a FactionDef.id. Must match exactly."
-    )
+class StepEntity(BaseModel):
+    entity_id: str = Field(description="References an entity id. Must match exactly.")
     leader: str = Field(
-        description="Historical leader name. Use '-' for unaligned faction."
+        description="Historical leader name. Use '-' for unaligned entities."
     )
     description: str = Field(
         description=(
-            "A vivid description of this faction's state at this point in time. "
+            "A vivid description of this entity's state at this point in time. "
             "Cover its political mood, recent events, and standing in the world. "
             "Write richly; do not be terse."
         )
@@ -54,20 +52,20 @@ class StepFaction(BaseModel):
     government_type: GovernmentType = Field(
         description=(
             "Regime type for THIS step. Pick the closest enum value. "
-            "Use 'unaligned' for catch-all/non-state factions."
+            "Use 'unaligned' for catch-all/non-state entities."
         )
     )
     capital: str = Field(
         description=(
             "Capital city of this regime in this step's year. Use a real "
             "historical city name (e.g. 'Constantinople' not 'Istanbul' for "
-            "the Ottoman Empire). Use '-' for unaligned factions."
+            "the Ottoman Empire). Use '-' for unaligned entities."
         )
     )
     capital_lat: float = Field(description="Latitude of the capital city.")
     capital_lng: float = Field(description="Longitude of the capital city.")
     countries: list[str] = Field(
-        description="ISO 3166-1 alpha-3 codes for countries controlled by this faction."
+        description="ISO 3166-1 alpha-3 codes for countries controlled by this entity."
     )
 
 
@@ -87,15 +85,15 @@ class TimelineStep(BaseModel):
         )
     )
     camera: CameraPosition
-    faction_states: list[StepFaction] = Field(
-        description="Every faction must appear with its countries. All factions in every step."
+    entity_states: list[StepEntity] = Field(
+        description="Every entity must appear with its countries. All entities in every step."
     )
 
 
 class AlternateTimeline(BaseModel):
     title: str = Field(description="Cinematic title for the timeline.")
-    factions: list[FactionDef] = Field(
-        description="ALL factions across ALL steps. Include major and regional powers — not just the main conflict. Define once, reference by id."
+    entities: list[EntityDef] = Field(
+        description="ALL entities across ALL steps. Every sovereign state in the world — empires, kingdoms, republics, city-states."
     )
     steps: list[TimelineStep] = Field(
         description="Exactly 5 chronological steps covering the full alternate history."
@@ -105,7 +103,7 @@ class AlternateTimeline(BaseModel):
 # --- Response models (with merged GeoJSON) ---
 
 
-class FactionInfo(BaseModel):
+class EntityInfo(BaseModel):
     name: str
     color: str
     leader: str
@@ -119,7 +117,7 @@ class FactionInfo(BaseModel):
 
 
 class MergedRegion(BaseModel):
-    faction_name: str
+    entity_name: str
     region_name: str
     color: str
     geometry: dict[str, Any]
@@ -130,7 +128,7 @@ class GeoStep(BaseModel):
     narration: str
     key_events: list[str] = Field(default_factory=list)
     camera: CameraPosition
-    factions: list[FactionInfo]
+    entities: list[EntityInfo]
     regions: list[MergedRegion]
 
 

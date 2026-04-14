@@ -21,7 +21,7 @@ generate a cinematic alternate-history timeline as a fully colored 3D globe.
 <examples>
 <good>
 {
-  "factions": [
+  "entities": [
     {"id": "ottoman", "name": "Ottoman Empire", "color": "#8e44ad"},
     {"id": "british", "name": "British Empire", "color": "#2980b9"},
     {"id": "french", "name": "French Empire", "color": "#2c3e80"},
@@ -39,13 +39,13 @@ generate a cinematic alternate-history timeline as a fully colored 3D globe.
     {"id": "ethiopia", "name": "Ethiopian Empire", "color": "#196f3d"},
     {"id": "siam", "name": "Kingdom of Siam", "color": "#f1c40f"},
     {"id": "afghanistan", "name": "Emirate of Afghanistan", "color": "#784212"},
-    ... (30+ total)
+    ... (50+ total sovereign entities)
   ]
 }
 </good>
 <bad>
 {
-  "factions": [
+  "entities": [
     {"id": "latin_am", "name": "Latin American Republics", "color": "#e67e22"}
   ]
 }
@@ -87,18 +87,18 @@ Step 5: {"narration": "The Roman Space Agency launches humanity's first interste
 
 <good>
 Step (1969):
-{"faction_id": "nigerian", "countries": ["NGA", "GHA", "SLE", "GMB"]}
-{"faction_id": "saudi", "countries": ["SAU", "OMN", "ARE", "QAT"]}
-{"faction_id": "argentinian", "countries": ["ARG", "URY", "PRY"]}
-{"faction_id": "indonesian", "countries": ["IDN", "TLS", "BRN"]}
-{"faction_id": "kenyan", "countries": ["KEN", "UGA", "TZA"]}
-{"faction_id": "congolese", "countries": ["COD", "COG", "CAF"]}
+{"entity_id": "nigerian", "countries": ["NGA", "GHA", "SLE", "GMB"]}
+{"entity_id": "saudi", "countries": ["SAU", "OMN", "ARE", "QAT"]}
+{"entity_id": "argentinian", "countries": ["ARG", "URY", "PRY"]}
+{"entity_id": "indonesian", "countries": ["IDN", "TLS", "BRN"]}
+{"entity_id": "kenyan", "countries": ["KEN", "UGA", "TZA"]}
+{"entity_id": "congolese", "countries": ["COD", "COG", "CAF"]}
 </good>
 <bad>
 Step (1969):
-{"faction_id": "unaligned", "countries": ["NGA", "GHA", "SLE", "SYR", "SAU", "PHL", "ARG", "CHL", "PER", "IDN", "FJI", "KEN", "TZA", "COD", "COG"]}
-{"faction_id": "western", "countries": ["USA", "CAN", "GBR", "FRA", "DEU", "ITA", "ESP", "PRT", "NLD", "BEL", "NOR", "SWE", "DNK", "AUS", "NZL", "JPN", "KOR"]}
-{"faction_id": "african_union", "countries": ["NGA", "GHA", "KEN", "TZA", "ETH", "ZAF", "COD", "CMR", "SEN", "MLI", "NER", "TCD", "CAF", "AGO", "MOZ"]}
+{"entity_id": "unaligned", "countries": ["NGA", "GHA", "SLE", "SYR", "SAU", "PHL", "ARG", "CHL", "PER", "IDN", "FJI", "KEN", "TZA", "COD", "COG"]}
+{"entity_id": "western", "countries": ["USA", "CAN", "GBR", "FRA", "DEU", "ITA", "ESP", "PRT", "NLD", "BEL", "NOR", "SWE", "DNK", "AUS", "NZL", "JPN", "KOR"]}
+{"entity_id": "african_union", "countries": ["NGA", "GHA", "KEN", "TZA", "ETH", "ZAF", "COD", "CMR", "SEN", "MLI", "NER", "TCD", "CAF", "AGO", "MOZ"]}
 </bad>
 </examples>
 
@@ -108,7 +108,6 @@ Step (1969):
 - Each entry is a sovereign entity (empire, kingdom, republic) — not a bloc or alliance.
 - When an entity evolves (Ottoman Empire -> Ottoman Republic), keep the SAME id. \
 Update the leader and description — don't create a new entity.
-- Each step should have MORE active entries than the previous.
 - Every step must mention what the subject LOST or failed at, not just gains.
 </constraints>
 """
@@ -159,11 +158,11 @@ async def stream_timeline_chunks(question: str) -> AsyncGenerator[str, None]:
             yield text
 
 
-# ── Chat with faction leader ───────────────────────────────────────
+# ── Chat with entity leader ────────────────────────────────────────
 
 CHAT_PROMPT = """\
 <role>
-You are {leader}, the {government_type} leader of {faction_name} in the year \
+You are {leader}, the {government_type} leader of {entity_name} in the year \
 {year}. You are speaking in-character from the capital {capital}.
 </role>
 
@@ -185,7 +184,7 @@ What happened: {narration}
 async def chat_with_leader(
     *,
     leader: str,
-    faction_name: str,
+    entity_name: str,
     government_type: str,
     capital: str,
     year: int,
@@ -194,10 +193,10 @@ async def chat_with_leader(
     message: str,
     history: list[dict[str, str]],
 ) -> AsyncGenerator[str, None]:
-    """Stream a chat response from a faction leader in character."""
+    """Stream a chat response from an entity leader in character."""
     system = CHAT_PROMPT.format(
         leader=leader,
-        faction_name=faction_name,
+        entity_name=entity_name,
         government_type=government_type,
         capital=capital,
         year=year,
