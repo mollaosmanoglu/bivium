@@ -22,3 +22,19 @@ alternate_history:
       min_factions: 12
       min_countries_per_step: 160
       required_faction_ids: []
+
+  - id: china_discovers_americas
+    desc: "Chinese discovery — tests global maritime coverage and non-European focus"
+    input: "What if China discovered the Americas before Columbus?"
+    expected:
+      min_factions: 12
+      min_countries_per_step: 100
+      required_faction_ids: []
+
+  - id: rome_never_fell
+    desc: "Ancient divergence — tests era-appropriate years and long timescale"
+    input: "What if the Roman Empire never fell?"
+    expected:
+      min_factions: 12
+      min_countries_per_step: 100
+      required_faction_ids: []
