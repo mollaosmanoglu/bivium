@@ -32,23 +32,16 @@ generate a cinematic alternate-history timeline as a fully colored 3D globe.
     {"id": "japanese", "name": "Empire of Japan", "color": "#f39c12"},
     {"id": "qing", "name": "Qing Dynasty", "color": "#8b4513"},
     {"id": "italian", "name": "Kingdom of Italy", "color": "#27ae60"},
-    ... (more sovereign entities)
     {"id": "brazil", "name": "Republic of Brazil", "color": "#229954"},
     {"id": "argentina", "name": "Argentine Republic", "color": "#5dade2"},
     {"id": "mexico", "name": "Republic of Mexico", "color": "#a04000"},
-    ... (more sovereign entities)
     {"id": "sweden", "name": "Kingdom of Sweden", "color": "#2e86c1"},
     {"id": "ethiopia", "name": "Ethiopian Empire", "color": "#196f3d"},
     {"id": "siam", "name": "Kingdom of Siam", "color": "#f1c40f"},
     {"id": "afghanistan", "name": "Emirate of Afghanistan", "color": "#784212"},
-    ... (30+ total sovereign entities)
+    ... (30+ total)
   ]
 }
-Each is a real sovereign entity — not a bloc or alliance.
-
-Escalation: each step should have MORE entities than the last. \
-Start with ~15 (empires dominate), end with ~50+ (fragmentation, \
-decolonization, sovereignty). Every entity must have countries assigned.
 </good>
 <bad>
 {
@@ -56,37 +49,39 @@ decolonization, sovereignty). Every entity must have countries assigned.
     {"id": "latin_am", "name": "Latin American Republics", "color": "#e67e22"}
   ]
 }
-"Latin American Republics" is a fake bloc — Brazil, Argentina, Mexico \
-are separate sovereign states.
 </bad>
 
 <good>
-"What if Rome never fell?" → steps: 117, 476, 800, 1204, 1387
-"What if the Ottoman Empire never fell?" → steps: 1914, 1945, 1970, 2000, 2025
-Pick years that fit the story. Ancient scenarios stay in that era.
+"What if Rome never fell?" → {"steps": [{"year": 117}, {"year": 476}, {"year": 800}, {"year": 1204}, {"year": 1387}]}
+"What if the Ottoman Empire never fell?" → {"steps": [{"year": 1914}, {"year": 1922}, {"year": 1939}, {"year": 1955}, {"year": 1971}]}
 </good>
 <bad>
-steps: 1914, 1945, 1970, 2000, 2025 for a Roman Empire question.
-Always ending at present day regardless of era.
+"What if Rome never fell?" → {"steps": [{"year": 476}, {"year": 1000}, {"year": 1500}, {"year": 1900}, {"year": 2025}]}
 </bad>
 
 <good>
-"What if the Ottoman Empire never fell?"
-Step 1 (1914):
-{"narration": "The Porte narrowly survives the Balkan Wars but emerges weakened — Kurdish unrest spreads east while Arab nationalists demand autonomy in Syria and Hejaz.", "key_events": ["Kurdish revolt in Diyarbakir crushed at heavy cost, straining the treasury", "Britain funds Arab nationalist cells in Hejaz, undermining Ottoman grip on Arabia", "Young Turk reformists force a constitutional assembly, splitting the ruling elite"]}
-Step 3 (1965):
-{"narration": "Oil wealth floods the treasury but poisons politics — Arab provinces demand revenue sharing, the military eyes power, and the Sultan is a figurehead.", "key_events": ["Arab federalists in Baghdad threaten secession over oil royalties", "Ottoman-Soviet border skirmishes erupt in the Caucasus, killing 2,000", "A military coup in Ankara narrowly fails; 14 officers are publicly executed"]}
-Step 5 (2025):
-{"narration": "The empire survives as a loose federation — Istanbul gleams, but Kurdistan is autonomous in all but name and Egypt has drifted into China's orbit.", "key_events": ["Kurdistan holds its first independent referendum; Constantinople refuses to recognize results", "Egypt signs a Belt and Road port deal, sidelining Ottoman trade routes", "The Sultan's powers are reduced to ceremonial after a constitutional reform"]}
-The subject survives but pays a price. Each step has setbacks, \
-internal conflict, and rivals gaining ground. Nobody becomes a \
-superpower unopposed.
+{"narration": "The Porte narrowly survives the Balkan Wars but emerges weakened — Kurdish unrest spreads east while Arab nationalists demand autonomy.", "key_events": ["Kurdish revolt in Diyarbakir crushed at heavy cost", "Britain funds Arab nationalist cells in Hejaz", "Young Turk reformists force a constitutional assembly"]}
+{"narration": "Oil wealth floods the treasury but poisons politics — Arab provinces demand revenue sharing, the military eyes power.", "key_events": ["Arab federalists in Baghdad threaten secession", "Ottoman-Soviet border skirmishes erupt in the Caucasus", "A military coup in Ankara narrowly fails"]}
 </good>
 <bad>
-"What if the Ottoman Empire never fell?"
 {"narration": "The Ottoman Empire avoids all decline and becomes a global superpower.", "key_events": ["The empire grows stronger", "The empire dominates trade", "The empire conquers new territory"]}
-{"narration": "The Ottoman Empire is now the most powerful nation on Earth.", "key_events": ["All rivals submit to Ottoman authority", "The empire controls all of Europe and Africa", "Global Ottoman hegemony is achieved peacefully"]}
-{"narration": "The Ottoman Golden Age continues into the modern era.", "key_events": ["Ottoman technology leads the world", "All ethnic groups live in harmony", "The empire expands into space"]}
+{"narration": "The Ottoman Empire is now the most powerful nation on Earth.", "key_events": ["All rivals submit", "Global hegemony achieved"]}
+</bad>
+
+<good>
+Step (1969):
+{"faction_id": "nigerian", "countries": ["NGA", "GHA", "SLE", "GMB"]}
+{"faction_id": "saudi", "countries": ["SAU", "OMN", "ARE", "QAT"]}
+{"faction_id": "argentinian", "countries": ["ARG", "URY", "PRY"]}
+{"faction_id": "indonesian", "countries": ["IDN", "TLS", "BRN"]}
+{"faction_id": "kenyan", "countries": ["KEN", "UGA", "TZA"]}
+{"faction_id": "congolese", "countries": ["COD", "COG", "CAF"]}
+</good>
+<bad>
+Step (1969):
+{"faction_id": "unaligned", "countries": ["NGA", "GHA", "SLE", "SYR", "SAU", "PHL", "ARG", "CHL", "PER", "IDN", "FJI", "KEN", "TZA", "COD", "COG"]}
+{"faction_id": "western", "countries": ["USA", "CAN", "GBR", "FRA", "DEU", "ITA", "ESP", "PRT", "NLD", "BEL", "NOR", "SWE", "DNK", "AUS", "NZL", "JPN", "KOR"]}
+{"faction_id": "african_union", "countries": ["NGA", "GHA", "KEN", "TZA", "ETH", "ZAF", "COD", "CMR", "SEN", "MLI", "NER", "TCD", "CAF", "AGO", "MOZ"]}
 </bad>
 </examples>
 

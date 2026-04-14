@@ -260,7 +260,7 @@ def _merge_step(step: TimelineStep, faction_map: dict[str, FactionDef]) -> GeoSt
         if not fdef:
             continue
         # Skip unaligned — let geo background handle them
-        if sf.government_type == "unaligned":
+        if sf.government_type == "unaligned" or sf.faction_id == "unaligned":
             continue
         assigned.update(sf.countries)
         geometry = merge_countries(sf.countries)
