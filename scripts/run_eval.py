@@ -47,8 +47,12 @@ ALL_ISO = all_iso_codes()
 
 async def task(input: dict[str, Any]) -> dict[str, Any]:
     """Run the model and extract metrics from the output."""
+    import time
+
     question: str = input["input"]
+    t0 = time.monotonic()
     timeline = await generate_timeline(question)
+    elapsed = time.monotonic() - t0
 
     faction_ids = [f.id for f in timeline.factions]
     countries_per_step: list[int] = []
@@ -88,6 +92,7 @@ async def task(input: dict[str, Any]) -> dict[str, Any]:
         "steps_under_key_events_floor": steps_under_key_events_floor,
         "steps_over_key_events_cap": steps_over_key_events_cap,
         "title": timeline.title,
+        "elapsed_seconds": round(elapsed, 1),
     }
 
 
@@ -217,6 +222,22 @@ def enrichment_completeness(output: Any, expected: Any) -> dict[str, Any]:
     }
 
 
+def generation_speed(output: Any, expected: Any) -> dict[str, Any]:
+    """Check generation completed within 120 seconds."""
+    elapsed = output.get("elapsed_seconds", 0)
+    if elapsed <= 120:
+        return {
+            "score": 1.0,
+            "label": "PASS",
+            "explanation": f"{elapsed}s (≤ 120s)",
+        }
+    return {
+        "score": 120 / elapsed,
+        "label": "FAIL",
+        "explanation": f"{elapsed}s (> 120s)",
+    }
+
+
 # ── Phoenix setup ───────────────────────────────────────────────────
 
 
@@ -296,9 +317,10 @@ async def main() -> None:
             "required_factions": required_factions,
             "enrichment_completeness": enrichment_completeness,
             "key_events_completeness": key_events_completeness,
+            "generation_speed": generation_speed,
         },  # type: ignore[arg-type]
         concurrency=3,
-        timeout=180,
+        timeout=300,
     )
 
     fails = 0

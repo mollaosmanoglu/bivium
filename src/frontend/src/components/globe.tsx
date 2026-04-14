@@ -105,6 +105,8 @@ interface FactionInfo {
 	leader: string;
 	government_type: GovernmentType;
 	capital: string;
+	capital_lat: number;
+	capital_lng: number;
 	description: string;
 	lat: number;
 	lng: number;
@@ -275,6 +277,19 @@ export default function GlobeViewer({
 		[step],
 	);
 
+	const capitalMarkers = useMemo(
+		() =>
+			step?.factions
+				.filter((f) => f.capital && f.capital !== "-" && f.capital_lat !== 0)
+				.map((f) => ({
+					lat: f.capital_lat,
+					lng: f.capital_lng,
+					label: f.capital,
+					color: f.color,
+				})) ?? [],
+		[step],
+	);
+
 	// Camera + auto-rotate on home screen
 	useEffect(() => {
 		const globe = globeRef.current;
@@ -370,6 +385,16 @@ export default function GlobeViewer({
 				}}
 				atmosphereColor="#3a228a"
 				atmosphereAltitude={0.2}
+				labelsData={capitalMarkers}
+				labelLat={(d: object) => (d as { lat: number }).lat}
+				labelLng={(d: object) => (d as { lng: number }).lng}
+				labelText={(d: object) => (d as { label: string }).label}
+				labelSize={0.5}
+				labelDotRadius={0.2}
+				labelColor={() => "rgba(255, 255, 255, 0.8)"}
+				labelResolution={2}
+				labelAltitude={0.015}
+				labelsTransitionDuration={0}
 			/>
 
 			{/* Title */}

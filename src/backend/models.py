@@ -64,6 +64,8 @@ class StepFaction(BaseModel):
             "the Ottoman Empire). Use '-' for unaligned factions."
         )
     )
+    capital_lat: float = Field(description="Latitude of the capital city.")
+    capital_lng: float = Field(description="Longitude of the capital city.")
     countries: list[str] = Field(
         description="ISO 3166-1 alpha-3 codes for countries controlled by this faction."
     )
@@ -109,6 +111,8 @@ class FactionInfo(BaseModel):
     leader: str
     government_type: GovernmentType = "unaligned"
     capital: str = ""
+    capital_lat: float = 0.0
+    capital_lng: float = 0.0
     description: str
     lat: float
     lng: float

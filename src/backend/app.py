@@ -282,6 +282,8 @@ def _merge_step(step: TimelineStep, faction_map: dict[str, FactionDef]) -> GeoSt
                     leader=sf.leader,
                     government_type=sf.government_type,
                     capital=sf.capital,
+                    capital_lat=sf.capital_lat,
+                    capital_lng=sf.capital_lng,
                     description=sf.description,
                     lat=centroid.y,
                     lng=centroid.x,
