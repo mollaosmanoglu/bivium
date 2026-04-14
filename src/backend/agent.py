@@ -46,41 +46,57 @@ generate a cinematic alternate-history timeline as a fully colored 3D globe.
 }
 Each is a real sovereign entity — not a bloc or alliance.
 
-Escalation across steps:
-  Step 1 (1914): ~15 entities — age of empires, large powers dominate
-  Step 2 (1945): ~25 entities — empires weakening, new states emerging
-  Step 3 (1970): ~35 entities — decolonization, Africa/Asia gain independence
-  Step 4 (2000): ~45 entities — cold war ends, USSR/Yugoslavia fragment
-  Step 5 (2025): ~50+ entities — modern world, most countries sovereign
+Escalation: each step should have MORE entities than the last. \
+Start with ~15 (empires dominate), end with ~50+ (fragmentation, \
+decolonization, sovereignty). Every entity must have countries assigned.
 </good>
-
 <bad>
 {
   "factions": [
-    {"id": "ottoman", "name": "Ottoman Empire", "color": "#8e44ad"},
-    {"id": "british", "name": "British Empire", "color": "#2980b9"},
-    {"id": "russian", "name": "Russian Empire", "color": "#c0392b"},
     {"id": "latin_am", "name": "Latin American Republics", "color": "#e67e22"}
   ]
 }
-Only 4 entries and same count in every step. "Latin American Republics" is a \
-fake bloc — Brazil, Argentina, Mexico are separate sovereign states.
+"Latin American Republics" is a fake bloc — Brazil, Argentina, Mexico \
+are separate sovereign states.
+</bad>
+
+<good>
+"What if Rome never fell?" → steps: 117, 476, 800, 1204, 1387
+"What if the Ottoman Empire never fell?" → steps: 1914, 1945, 1970, 2000, 2025
+Pick years that fit the story. Ancient scenarios stay in that era.
+</good>
+<bad>
+steps: 1914, 1945, 1970, 2000, 2025 for a Roman Empire question.
+Always ending at present day regardless of era.
+</bad>
+
+<good>
+"What if the Ottoman Empire never fell?"
+Step 1 (1914):
+{"narration": "The Porte narrowly survives the Balkan Wars but emerges weakened — Kurdish unrest spreads east while Arab nationalists demand autonomy in Syria and Hejaz.", "key_events": ["Kurdish revolt in Diyarbakir crushed at heavy cost, straining the treasury", "Britain funds Arab nationalist cells in Hejaz, undermining Ottoman grip on Arabia", "Young Turk reformists force a constitutional assembly, splitting the ruling elite"]}
+Step 3 (1965):
+{"narration": "Oil wealth floods the treasury but poisons politics — Arab provinces demand revenue sharing, the military eyes power, and the Sultan is a figurehead.", "key_events": ["Arab federalists in Baghdad threaten secession over oil royalties", "Ottoman-Soviet border skirmishes erupt in the Caucasus, killing 2,000", "A military coup in Ankara narrowly fails; 14 officers are publicly executed"]}
+Step 5 (2025):
+{"narration": "The empire survives as a loose federation — Istanbul gleams, but Kurdistan is autonomous in all but name and Egypt has drifted into China's orbit.", "key_events": ["Kurdistan holds its first independent referendum; Constantinople refuses to recognize results", "Egypt signs a Belt and Road port deal, sidelining Ottoman trade routes", "The Sultan's powers are reduced to ceremonial after a constitutional reform"]}
+The subject survives but pays a price. Each step has setbacks, \
+internal conflict, and rivals gaining ground. Nobody becomes a \
+superpower unopposed.
+</good>
+<bad>
+"What if the Ottoman Empire never fell?"
+{"narration": "The Ottoman Empire avoids all decline and becomes a global superpower.", "key_events": ["The empire grows stronger", "The empire dominates trade", "The empire conquers new territory"]}
+{"narration": "The Ottoman Empire is now the most powerful nation on Earth.", "key_events": ["All rivals submit to Ottoman authority", "The empire controls all of Europe and Africa", "Global Ottoman hegemony is achieved peacefully"]}
+{"narration": "The Ottoman Golden Age continues into the modern era.", "key_events": ["Ottoman technology leads the world", "All ethnic groups live in harmony", "The empire expands into space"]}
 </bad>
 </examples>
 
 <constraints>
+- Generate exactly 5 steps. No fewer, no more.
 - Every country in exactly one entry per step. No duplicates, no gaps.
 - Each entry is a sovereign entity (empire, kingdom, republic) — not a bloc or alliance.
 - When an entity evolves (Ottoman Empire -> Ottoman Republic), keep the SAME id. \
 Update the leader and description — don't create a new entity.
 - Each step should have MORE active entries than the previous.
-- Sub-regions: max 20 countries each. Core homeland listed FIRST.
-- For each faction in each step also fill: government_type (one of the enum \
-values: monarchy, republic, empire, democracy, theocracy, military_junta, \
-communist, fascist, tribal, federation, city_state, protectorate, unaligned), \
-capital city (period-correct historical name, e.g. 'Constantinople' not \
-'Istanbul' for Ottoman Empire), and a backstory grounded in the timeline \
-narration.
 </constraints>
 """
 
@@ -102,7 +118,7 @@ def _get_config() -> types.GenerateContentConfig:
         system_instruction=_build_instructions(),
         response_mime_type="application/json",
         response_schema=AlternateTimeline,
-        max_output_tokens=32768,
+        max_output_tokens=65536,
     )
 
 
@@ -141,7 +157,6 @@ You are {leader}, the {government_type} leader of {faction_name} in the year \
 <context>
 Timeline: {title}
 What happened: {narration}
-Your backstory: {backstory}
 </context>
 
 <constraints>
@@ -163,7 +178,6 @@ async def chat_with_leader(
     year: int,
     title: str,
     narration: str,
-    backstory: str,
     message: str,
     history: list[dict[str, str]],
 ) -> AsyncGenerator[str, None]:
@@ -176,7 +190,6 @@ async def chat_with_leader(
         year=year,
         title=title,
         narration=narration,
-        backstory=backstory,
     )
     contents: list[types.Content] = []
     for msg in history:

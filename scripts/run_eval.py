@@ -63,11 +63,10 @@ async def task(input: dict[str, Any]) -> dict[str, Any]:
         codes: list[str] = []
         for fs in step.faction_states:
             total_step_factions += 1
-            if not fs.government_type or not fs.capital or not fs.backstory:
+            if not fs.government_type:
                 incomplete_enrichments += 1
-            for sr in fs.sub_regions:
-                max_subregion_size = max(max_subregion_size, len(sr.countries))
-                codes.extend(sr.countries)
+            max_subregion_size = max(max_subregion_size, len(fs.countries))
+            codes.extend(fs.countries)
         countries_per_step.append(len(set(codes)))
         duplicates_per_step.append(len(codes) - len(set(codes)))
         n_events = len(step.key_events)

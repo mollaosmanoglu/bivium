@@ -30,6 +30,7 @@ const SCENARIOS = [
 export default function Home() {
 	const [question, setQuestion] = useState("");
 	const [timeline, setTimeline] = useState<AlternateTimeline | null>(null);
+	const [demoTimeline, setDemoTimeline] = useState<AlternateTimeline | null>(null);
 	const [streaming, setStreaming] = useState(false);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -40,6 +41,10 @@ export default function Home() {
 		const params = new URLSearchParams(window.location.search);
 		const q = params.get("q");
 		if (q) setQuestion(q);
+		fetch("/data/demo.json")
+			.then((r) => r.json())
+			.then((data) => setDemoTimeline(data as AlternateTimeline))
+			.catch(() => {});
 	}, []);
 
 	const handleSubmit = useCallback(
@@ -133,8 +138,9 @@ export default function Home() {
 			)}
 
 			<GlobeViewer
-				timeline={hasSteps ? timeline : null}
+				timeline={hasSteps ? timeline : demoTimeline}
 				streaming={streaming}
+				demo={!hasSteps}
 			/>
 
 			{!hasSteps && (

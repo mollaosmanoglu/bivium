@@ -2,12 +2,8 @@ from __future__ import annotations
 
 import json
 import logging
-from collections import defaultdict
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from src.backend.models import TimelineStep
+from typing import Any
 
 from shapely.geometry import mapping, shape
 from shapely.ops import unary_union
@@ -81,66 +77,3 @@ def merge_countries(iso_codes: list[str]) -> dict[str, Any] | None:
     if merged.is_empty:
         return None
     return mapping(merged)  # type: ignore[return-value]
-
-
-def patch_step_coverage(step: TimelineStep) -> None:
-    """Ensure every ISO code is assigned to exactly one faction. Mutates *step*."""
-    _load()
-    valid = set(_country_geometries.keys())
-
-    # Strip unknown codes and build assignment map: code → [(faction_idx, sub_idx)]
-    assignments: dict[str, list[tuple[int, int]]] = defaultdict(list)
-    for fi, fs in enumerate(step.faction_states):
-        for si, sr in enumerate(fs.sub_regions):
-            sr.countries = [c for c in sr.countries if c in valid]
-            for c in sr.countries:
-                assignments[c].append((fi, si))
-
-    # Deduplicate: keep code in the sub_region whose centroid is nearest
-    for code, locs in assignments.items():
-        if len(locs) <= 1:
-            continue
-        country_centroid = _country_geometries[code].centroid
-        best = min(
-            locs,
-            key=lambda loc: _sub_region_centroid(step, loc[0], loc[1]).distance(
-                country_centroid
-            ),
-        )
-        for loc in locs:
-            if loc != best:
-                step.faction_states[loc[0]].sub_regions[loc[1]].countries.remove(code)
-
-    # Fill gaps: assign missing codes to nearest faction's first sub_region
-    assigned = {
-        c for fs in step.faction_states for sr in fs.sub_regions for c in sr.countries
-    }
-    missing = valid - assigned
-    if not missing:
-        return
-
-    # Pre-compute homeland centroids (first sub_region of each faction)
-    homeland_centroids: list[tuple[int, Any]] = []
-    for fi, fs in enumerate(step.faction_states):
-        if fs.sub_regions and fs.sub_regions[0].countries:
-            homeland_centroids.append((fi, _sub_region_centroid(step, fi, 0)))
-    if not homeland_centroids:
-        return
-
-    for code in missing:
-        country_centroid = _country_geometries[code].centroid
-        best_fi: int
-        best_fi, _ = min(
-            homeland_centroids,
-            key=lambda fc: fc[1].distance(country_centroid),
-        )
-        step.faction_states[best_fi].sub_regions[0].countries.append(code)
-
-
-def _sub_region_centroid(step: TimelineStep, fi: int, si: int) -> Any:
-    """Compute centroid of a sub_region from its country geometries."""
-    codes = step.faction_states[fi].sub_regions[si].countries
-    geoms = [_country_geometries[c] for c in codes if c in _country_geometries]
-    if geoms:
-        return unary_union(geoms).centroid
-    return _country_geometries[next(iter(_country_geometries))].centroid

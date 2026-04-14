@@ -105,7 +105,6 @@ interface FactionInfo {
 	leader: string;
 	government_type: GovernmentType;
 	capital: string;
-	backstory: string;
 	description: string;
 	lat: number;
 	lng: number;
@@ -138,6 +137,7 @@ export interface AlternateTimeline {
 interface GlobeViewerProps {
 	timeline: AlternateTimeline | null;
 	streaming?: boolean;
+	demo?: boolean;
 }
 
 type GeoFeature = {
@@ -154,6 +154,7 @@ type GeoFeature = {
 export default function GlobeViewer({
 	timeline,
 	streaming = false,
+	demo = false,
 }: GlobeViewerProps) {
 	const globeRef = useRef<GlobeMethods>(undefined) as MutableRefObject<
 		GlobeMethods | undefined
@@ -208,7 +209,6 @@ export default function GlobeViewer({
 						leader: selectedFaction.leader,
 						government_type: selectedFaction.government_type,
 						capital: selectedFaction.capital,
-						backstory: selectedFaction.backstory,
 						message: userMsg,
 						history: chatHistory.filter((m) => m.content),
 					}),
@@ -280,7 +280,7 @@ export default function GlobeViewer({
 		const globe = globeRef.current;
 		if (!globe) return;
 		const controls = globe.controls();
-		if (!timeline) {
+		if (!timeline || demo) {
 			controls.autoRotate = true;
 			controls.autoRotateSpeed = 0.4;
 			globe.pointOfView({ lat: 20, lng: 0, altitude: 2.0 }, 0);
@@ -289,11 +289,11 @@ export default function GlobeViewer({
 			const s = timeline.steps[currentStep];
 			if (s) globe.pointOfView(s.camera, 1000);
 		}
-	}, [timeline, currentStep]);
+	}, [timeline, currentStep, demo]);
 
 	// Ensure auto-rotate starts after globe mounts
 	useEffect(() => {
-		if (timeline) return;
+		if (timeline && !demo) return;
 		const id = setTimeout(() => {
 			const globe = globeRef.current;
 			if (!globe) return;
@@ -336,18 +336,15 @@ export default function GlobeViewer({
 					const faction = step?.factions.find(
 						(fac) => fac.name === feat.properties.faction_name,
 					);
-					const govLine = faction
-						? `<div style="color:rgba(255,255,255,0.5);font-size:11px;text-transform:capitalize;margin-top:2px">${faction.government_type.replace("_", " ")}</div>`
+					if (!faction) return `<div style="padding:4px 8px;background:rgba(0,0,0,0.6);border-radius:4px;color:rgba(255,255,255,0.4);font-size:11px">${feat.properties.faction_name}</div>`;
+					const govLine = `<div style="color:rgba(255,255,255,0.5);font-size:11px;text-transform:capitalize;margin-top:2px">${faction.government_type.replace("_", " ")}</div>`;
+					const leaderLine = faction.leader && faction.leader !== "-"
+						? `<div style="color:rgba(255,255,255,0.8);font-size:12px;margin-top:2px">${faction.leader}</div>`
 						: "";
-					const leaderLine =
-						faction && faction.leader !== "-"
-							? `<div style="color:rgba(255,255,255,0.8);font-size:12px;margin-top:2px">${faction.leader}</div>`
-							: "";
 					return `<div style="padding:6px 10px;background:rgba(0,0,0,0.8);border-radius:4px;color:white;text-align:center;min-width:120px">
 						<b>${feat.properties.faction_name}</b>
 						${govLine}
 						${leaderLine}
-						<div style="color:${feat.properties.color};font-size:11px;margin-top:4px">${feat.properties.region_name}</div>
 					</div>`;
 				}}
 				polygonsTransitionDuration={0}
@@ -496,11 +493,6 @@ export default function GlobeViewer({
 											)}
 											{selectedFaction.description}
 										</SheetDescription>
-										{selectedFaction.backstory && (
-											<p className="border-l-2 border-white/10 pl-3 mt-3 text-sm text-white/60 leading-relaxed">
-												{selectedFaction.backstory}
-											</p>
-										)}
 										{selectedFaction.leader !== "-" &&
 											!streaming &&
 											timeline &&

@@ -27,15 +27,6 @@ class CameraPosition(BaseModel):
     )
 
 
-class SubRegion(BaseModel):
-    name: str = Field(
-        description="Period-accurate historical name, e.g. 'Eyalet of Rumelia', not 'Balkans'."
-    )
-    countries: list[str] = Field(
-        description="ISO 3166-1 alpha-3 codes. Max 20 per sub-region — split large groups."
-    )
-
-
 class FactionDef(BaseModel):
     id: str = Field(
         description="Stable short slug, e.g. 'ottoman', 'british'. Same across all steps."
@@ -73,16 +64,8 @@ class StepFaction(BaseModel):
             "the Ottoman Empire). Use '-' for unaligned factions."
         )
     )
-    backstory: str = Field(
-        description=(
-            "A rich, substantive backstory explaining how this regime came to "
-            "be in this step: the events that shaped it, the people, the "
-            "decisions. Ground in the timeline narration; do not contradict it. "
-            "Write richly; do not be terse."
-        )
-    )
-    sub_regions: list[SubRegion] = Field(
-        description="2-5 sub-regions. Core homeland FIRST. Each max 20 countries."
+    countries: list[str] = Field(
+        description="ISO 3166-1 alpha-3 codes for countries controlled by this faction."
     )
 
 
@@ -103,17 +86,17 @@ class TimelineStep(BaseModel):
     )
     camera: CameraPosition
     faction_states: list[StepFaction] = Field(
-        description="Every faction active in this step. Must cover ALL countries."
+        description="Every faction must appear with its countries. All factions in every step."
     )
 
 
 class AlternateTimeline(BaseModel):
     title: str = Field(description="Cinematic title for the timeline.")
     factions: list[FactionDef] = Field(
-        description="ALL factions across ALL steps. At least 12. Define once, reference by id."
+        description="ALL factions across ALL steps. Include major and regional powers — not just the main conflict. Define once, reference by id."
     )
     steps: list[TimelineStep] = Field(
-        description="5-8 chronological steps covering the full alternate history."
+        description="Exactly 5 chronological steps covering the full alternate history."
     )
 
 
@@ -126,7 +109,6 @@ class FactionInfo(BaseModel):
     leader: str
     government_type: GovernmentType = "unaligned"
     capital: str = ""
-    backstory: str = ""
     description: str
     lat: float
     lng: float

@@ -19,7 +19,7 @@ services:
     build:
       context: src/frontend
     ports:
-      - "3000:3000"
+      - "3001:3000"
     volumes:
       - ./src/frontend:/app
       - /app/node_modules

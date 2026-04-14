@@ -2,7 +2,6 @@ import json
 import logging
 import time
 from collections.abc import AsyncGenerator
-from typing import Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,7 +15,7 @@ from src.backend.agent import (
     generate_timeline,
     stream_timeline_chunks,
 )
-from src.backend.geo import merge_countries, patch_step_coverage
+from src.backend.geo import merge_countries
 from src.backend.models import (
     AlternateTimeline,
     FactionDef,
@@ -54,64 +53,257 @@ class ChatRequest(BaseModel):
     leader: str
     government_type: str
     capital: str
-    backstory: str
     message: str
     history: list[dict[str, str]]
 
 
-def _shade(hex_color: str, factor: float) -> str:
-    """Lighten (factor > 1) or darken (factor < 1) a hex color."""
-    r = int(hex_color[1:3], 16)
-    g = int(hex_color[3:5], 16)
-    b = int(hex_color[5:7], 16)
-    r = min(255, int(r * factor))
-    g = min(255, int(g * factor))
-    b = min(255, int(b * factor))
-    return f"#{r:02x}{g:02x}{b:02x}"
+# Geographic regions with muted colors for unassigned countries
+GEO_REGIONS: dict[str, tuple[list[str], str]] = {
+    "North America": (
+        [
+            "USA",
+            "CAN",
+            "MEX",
+            "GTM",
+            "BLZ",
+            "SLV",
+            "HND",
+            "NIC",
+            "CRI",
+            "PAN",
+            "CUB",
+            "JAM",
+            "HTI",
+            "DOM",
+            "BHS",
+            "TTO",
+            "PRI",
+        ],
+        "#2a2a3e",
+    ),
+    "South America": (
+        [
+            "BRA",
+            "ARG",
+            "CHL",
+            "COL",
+            "VEN",
+            "PER",
+            "ECU",
+            "BOL",
+            "PRY",
+            "URY",
+            "GUY",
+            "SUR",
+            "FLK",
+        ],
+        "#2e2a3e",
+    ),
+    "Western Europe": (
+        [
+            "GBR",
+            "FRA",
+            "DEU",
+            "ESP",
+            "PRT",
+            "ITA",
+            "NLD",
+            "BEL",
+            "CHE",
+            "AUT",
+            "IRL",
+            "LUX",
+            "DNK",
+            "NOR",
+            "SWE",
+            "FIN",
+            "ISL",
+            "GRL",
+        ],
+        "#2a2e3e",
+    ),
+    "Eastern Europe": (
+        [
+            "POL",
+            "CZE",
+            "SVK",
+            "HUN",
+            "ROU",
+            "BGR",
+            "SRB",
+            "HRV",
+            "BIH",
+            "SVN",
+            "MNE",
+            "MKD",
+            "ALB",
+            "GRC",
+            "XKX",
+            "LTU",
+            "LVA",
+            "EST",
+            "BLR",
+            "UKR",
+            "MDA",
+        ],
+        "#2d2a3e",
+    ),
+    "Russia & Central Asia": (
+        ["RUS", "KAZ", "UZB", "TKM", "TJK", "KGZ", "MNG", "GEO", "ARM", "AZE"],
+        "#302a3e",
+    ),
+    "Middle East": (
+        [
+            "TUR",
+            "IRQ",
+            "IRN",
+            "SYR",
+            "JOR",
+            "LBN",
+            "ISR",
+            "PSE",
+            "KWT",
+            "OMN",
+            "ARE",
+            "YEM",
+            "QAT",
+            "SAU",
+            "BHR",
+            "CYP",
+        ],
+        "#3e2a2a",
+    ),
+    "North Africa": (
+        ["MAR", "DZA", "TUN", "LBY", "EGY", "ESH", "MRT", "SDN"],
+        "#352a2a",
+    ),
+    "West Africa": (
+        [
+            "SEN",
+            "GMB",
+            "GIN",
+            "GNB",
+            "SLE",
+            "LBR",
+            "CIV",
+            "MLI",
+            "BFA",
+            "NER",
+            "GHA",
+            "TGO",
+            "BEN",
+            "NGA",
+        ],
+        "#2a352a",
+    ),
+    "Central & East Africa": (
+        [
+            "CMR",
+            "CAF",
+            "TCD",
+            "COD",
+            "COG",
+            "GAB",
+            "GNQ",
+            "KEN",
+            "TZA",
+            "UGA",
+            "RWA",
+            "BDI",
+            "ETH",
+            "ERI",
+            "DJI",
+            "SOM",
+            "SSD",
+        ],
+        "#2a3e2e",
+    ),
+    "Southern Africa": (
+        ["ZAF", "NAM", "BWA", "ZWE", "ZMB", "MOZ", "MWI", "SWZ", "LSO", "MDG", "AGO"],
+        "#2a3a2a",
+    ),
+    "South Asia": (["IND", "PAK", "BGD", "LKA", "NPL", "BTN", "AFG"], "#3e3a2a"),
+    "East Asia": (["CHN", "JPN", "KOR", "PRK", "TWN"], "#2a3a3e"),
+    "Southeast Asia & Pacific": (
+        [
+            "THA",
+            "MMR",
+            "VNM",
+            "LAO",
+            "KHM",
+            "MYS",
+            "IDN",
+            "PHL",
+            "BRN",
+            "TLS",
+            "AUS",
+            "NZL",
+            "PNG",
+            "FJI",
+            "SLB",
+            "VUT",
+            "NCL",
+        ],
+        "#2a3e3a",
+    ),
+    "Other": (["ATA", "ATF"], "#222233"),
+}
 
 
 def _merge_step(step: TimelineStep, faction_map: dict[str, FactionDef]) -> GeoStep:
     regions: list[MergedRegion] = []
     faction_infos: list[FactionInfo] = []
+    assigned: set[str] = set()
+
     for sf in step.faction_states:
         fdef = faction_map.get(sf.faction_id)
         if not fdef:
             continue
-        faction_geoms: list[Any] = []
-        n = len(sf.sub_regions)
-        for i, sub in enumerate(sf.sub_regions):
-            shade_factor = 1.0 + (i * 0.15 / max(1, n - 1)) if n > 1 else 1.0
-            color = _shade(fdef.color, shade_factor)
-            geometry = merge_countries(sub.countries)
-            if geometry is not None:
-                faction_geoms.append(shape(geometry))
-                regions.append(
-                    MergedRegion(
-                        faction_name=fdef.name,
-                        region_name=sub.name,
-                        color=color,
-                        geometry=geometry,
-                    )
+        # Skip unaligned — let geo background handle them
+        if sf.government_type == "unaligned":
+            continue
+        assigned.update(sf.countries)
+        geometry = merge_countries(sf.countries)
+        if geometry is not None:
+            geom = shape(geometry)
+            centroid = geom.centroid
+            regions.append(
+                MergedRegion(
+                    faction_name=fdef.name,
+                    region_name="",
+                    color=fdef.color,
+                    geometry=geometry,
                 )
-        # Compute centroid from first sub-region (homeland/core)
-        if faction_geoms:
-            centroid = faction_geoms[0].centroid
-            lat, lng = centroid.y, centroid.x
-        else:
-            lat, lng = 0.0, 0.0
-        faction_infos.append(
-            FactionInfo(
-                name=fdef.name,
-                color=fdef.color,
-                leader=sf.leader,
-                government_type=sf.government_type,
-                capital=sf.capital,
-                backstory=sf.backstory,
-                description=sf.description,
-                lat=lat,
-                lng=lng,
             )
-        )
+            faction_infos.append(
+                FactionInfo(
+                    name=fdef.name,
+                    color=fdef.color,
+                    leader=sf.leader,
+                    government_type=sf.government_type,
+                    capital=sf.capital,
+                    description=sf.description,
+                    lat=centroid.y,
+                    lng=centroid.x,
+                )
+            )
+
+    # Muted geographic fill for unassigned countries
+    for region_name, (codes, color) in GEO_REGIONS.items():
+        leftover = [c for c in codes if c not in assigned]
+        if not leftover:
+            continue
+        geometry = merge_countries(leftover)
+        if geometry is not None:
+            regions.append(
+                MergedRegion(
+                    faction_name=region_name,
+                    region_name="",
+                    color=color,
+                    geometry=geometry,
+                )
+            )
+
     return GeoStep(
         year=step.year,
         narration=step.narration,
@@ -124,8 +316,6 @@ def _merge_step(step: TimelineStep, faction_map: dict[str, FactionDef]) -> GeoSt
 
 def _merge_timeline(raw: AlternateTimeline) -> GeoTimeline:
     faction_map = {f.id: f for f in raw.factions}
-    for step in raw.steps:
-        patch_step_coverage(step)
     return GeoTimeline(
         title=raw.title,
         steps=[_merge_step(step, faction_map) for step in raw.steps],
@@ -254,7 +444,6 @@ async def _stream_timeline(question: str) -> AsyncGenerator[str, None]:
         if faction_map:
             parsed = _try_parse_steps(buf)
             for step in parsed[sent:]:
-                patch_step_coverage(step)
                 geo_step = _merge_step(step, faction_map)
                 yield _sse("step", geo_step.model_dump())
                 sent += 1
@@ -277,7 +466,6 @@ async def _stream_timeline(question: str) -> AsyncGenerator[str, None]:
             pass
     parsed = _try_parse_steps(buf)
     for step in parsed[sent:]:
-        patch_step_coverage(step)
         geo_step = _merge_step(step, faction_map)
         yield _sse("step", geo_step.model_dump())
         sent += 1
@@ -289,8 +477,7 @@ async def _stream_timeline(question: str) -> AsyncGenerator[str, None]:
         for i, step in enumerate(raw.steps):
             codes: set[str] = set()
             for fs in step.faction_states:
-                for sr in fs.sub_regions:
-                    codes.update(sr.countries)
+                codes.update(fs.countries)
             logger.info(
                 "Step %d [%d]: %d entities, %d countries",
                 i + 1,
@@ -325,7 +512,6 @@ async def _stream_chat(req: ChatRequest) -> AsyncGenerator[str, None]:
         year=req.step_year,
         title=req.timeline_title,
         narration=req.step_narration,
-        backstory=req.backstory,
         message=req.message,
         history=req.history,
     ):
