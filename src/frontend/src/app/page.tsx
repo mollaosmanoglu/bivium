@@ -144,7 +144,7 @@ export default function Home() {
 			/>
 
 			{!hasSteps && (
-				<div className="absolute inset-0 flex items-center justify-center z-10">
+				<div className="absolute inset-0 flex items-center justify-center z-30">
 					<Card className="bg-[#1a1a1a] border-white/[0.08] w-full max-w-lg mx-4">
 						<CardContent className="pt-6">
 							<form
